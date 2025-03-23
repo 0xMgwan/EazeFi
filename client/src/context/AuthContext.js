@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -28,11 +28,31 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/auth/me`);
-      setUser(res.data);
-      setIsAuthenticated(true);
+      // For testnet, we'll use mock data instead of API call
+      if (token && token.startsWith('mock_token_')) {
+        // If we already have user data, keep it
+        if (!user) {
+          // Generate mock user data
+          const mockUser = {
+            id: 'user_' + Math.random().toString(36).substring(2, 10),
+            name: 'Test User',
+            email: 'testuser@example.com',
+            phone: '+1234567890',
+            country: 'United States',
+            createdAt: new Date().toISOString()
+          };
+          setUser(mockUser);
+        }
+        setIsAuthenticated(true);
+      } else {
+        // Clear user data if token is invalid
+        setToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthToken(null);
+      }
     } catch (err) {
-      console.error('Error loading user:', err.response?.data || err.message);
+      console.error('Error loading user:', err);
       setToken(null);
       setUser(null);
       setIsAuthenticated(false);
@@ -44,27 +64,39 @@ export const AuthProvider = ({ children }) => {
 
   // Register user
   const register = async (formData) => {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
+    // Using mock data for testnet instead of real API calls
     try {
       setLoading(true);
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/auth/register`,
-        formData,
-        config
-      );
-
-      setToken(res.data.token);
-      setAuthToken(res.data.token);
-      await loadUser();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate mock token
+      const mockToken = 'mock_token_' + Math.random().toString(36).substring(2, 15);
+      
+      // Mock user data
+      const mockUser = {
+        id: 'user_' + Math.random().toString(36).substring(2, 10),
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        country: formData.country,
+        nationalId: formData.nationalId,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Set token and user data
+      setToken(mockToken);
+      setAuthToken(mockToken);
+      setUser(mockUser);
+      setIsAuthenticated(true);
       setError(null);
+      setLoading(false);
+      
       return true;
     } catch (err) {
-      setError(err.response?.data?.errors || [{ msg: 'Server error' }]);
+      console.error('Registration error:', err);
+      setError([{ msg: 'Registration failed. Please try again.' }]);
       setLoading(false);
       return false;
     }
@@ -72,27 +104,45 @@ export const AuthProvider = ({ children }) => {
 
   // Login user
   const login = async (email, password) => {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
+    // Using mock data for testnet
     try {
       setLoading(true);
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/auth/login`,
-        { email, password },
-        config
-      );
-
-      setToken(res.data.token);
-      setAuthToken(res.data.token);
-      await loadUser();
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Simple validation
+      if (!email || !password) {
+        setError([{ msg: 'Please enter all fields' }]);
+        setLoading(false);
+        return false;
+      }
+      
+      // Generate mock token
+      const mockToken = 'mock_token_' + Math.random().toString(36).substring(2, 15);
+      
+      // Mock user data
+      const mockUser = {
+        id: 'user_' + Math.random().toString(36).substring(2, 10),
+        name: email.split('@')[0],
+        email: email,
+        phone: '+1234567890',
+        country: 'United States',
+        createdAt: new Date().toISOString()
+      };
+      
+      // Set token and user data
+      setToken(mockToken);
+      setAuthToken(mockToken);
+      setUser(mockUser);
+      setIsAuthenticated(true);
       setError(null);
+      setLoading(false);
+      
       return true;
     } catch (err) {
-      setError(err.response?.data?.errors || [{ msg: 'Server error' }]);
+      console.error('Login error:', err);
+      setError([{ msg: 'Invalid credentials' }]);
       setLoading(false);
       return false;
     }

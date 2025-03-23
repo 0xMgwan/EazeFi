@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EazeFi M-Pesa Remittance Demo</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .loader {
+      border-top-color: #3498db;
+      -webkit-animation: spinner 1.5s linear infinite;
+      animation: spinner 1.5s linear infinite;
+    }
+    @-webkit-keyframes spinner {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+    @keyframes spinner {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-4xl font-bold text-blue-600">EazeFi</h1>
+      <p class="text-gray-600">Crypto Remittance to M-Pesa Demo</p>
+    </header>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">Wallet Balance</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-blue-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600">XLM Balance</p>
+          <p class="text-2xl font-bold text-blue-800">1,250.00 XLM</p>
+        </div>
+        <div class="bg-green-50 p-4 rounded-lg">
+          <p class="text-sm text-gray-600">USDC Balance</p>
+          <p class="text-2xl font-bold text-green-800">500.00 USDC</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Send Crypto to M-Pesa (Tanzania)</h2>
+      
+      <div id="statusMessage" class="hidden mb-6 p-4 rounded"></div>
+      
+      <form id="mpesaForm">
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="recipientPhone">
+            Phone Number (Tanzania)
+          </label>
+          <input
+            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            id="recipientPhone"
+            type="tel"
+            placeholder="e.g., +255712345678 or 0712345678"
+            required
+          />
+          <p class="text-xs text-gray-500 mt-1">Format: +255XXXXXXXXX or 0XXXXXXXXX</p>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="recipientName">
+            Recipient's Full Name
+          </label>
+          <input
+            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            id="recipientName"
+            type="text"
+            placeholder="Recipient's full name"
+            required
+          />
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="amount">
+            Amount
+          </label>
+          <div class="flex">
+            <input
+              class="shadow appearance-none border border-gray-300 rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              id="amount"
+              type="number"
+              step="0.0000001"
+              placeholder="Enter amount"
+              required
+            />
+            <select
+              class="shadow border border-gray-300 rounded-r py-2 px-3 bg-gray-100 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              id="sourceCurrency"
+            >
+              <option value="XLM">XLM</option>
+              <option value="USDC">USDC</option>
+            </select>
+          </div>
+        </div>
+        
+        <div id="transactionSummary" class="hidden mb-6 p-4 bg-blue-50 rounded">
+          <h3 class="font-semibold text-blue-800 mb-2">Transaction Summary</h3>
+          <p class="text-blue-800">Recipient will receive: <span id="tzsAmount" class="font-bold">0 TZS</span></p>
+          <p class="text-blue-800 text-sm">Exchange rate: <span id="exchangeRate">1 XLM = 0 TZS</span></p>
+          <p class="text-blue-800 text-sm">Transaction fee: <span id="transactionFee">0</span></p>
+          <p id="insuranceFee" class="hidden text-blue-800 text-sm">Insurance fee: <span id="insuranceFeeAmount">0</span></p>
+          <p class="text-blue-800 mt-2">Total amount: <span id="totalAmount" class="font-bold">0</span></p>
+        </div>
+        
+        <div class="mb-6">
+          <label class="flex items-center">
+            <input
+              type="checkbox"
+              id="insurance"
+              class="form-checkbox h-5 w-5 text-blue-600"
+            />
+            <span class="ml-2 text-gray-700">Add transaction insurance (+1%)</span>
+          </label>
+          <p class="text-xs text-gray-500 mt-1">Insurance protects against network failures and ensures your recipient gets the funds.</p>
+        </div>
+        
+        <div class="mb-6">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="notes">
+            Notes (Optional)
+          </label>
+          <textarea
+            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            id="notes"
+            placeholder="Add a note to the recipient"
+            rows="3"
+          ></textarea>
+        </div>
+        
+        <div class="flex justify-end">
+          <button
+            type="submit"
+            id="submitButton"
+            class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg"
+          >
+            Send to M-Pesa
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div id="remittancesList" class="mt-8 bg-white rounded-lg shadow-md p-6 hidden">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">Recent Remittances</h2>
+      <div id="remittancesContainer" class="space-y-4">
+        <!-- Remittances will be added here dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('mpesaForm');
+      const amountInput = document.getElementById('amount');
+      const sourceCurrencySelect = document.getElementById('sourceCurrency');
+      const insuranceCheckbox = document.getElementById('insurance');
+      const transactionSummary = document.getElementById('transactionSummary');
+      const tzsAmountSpan = document.getElementById('tzsAmount');
+      const exchangeRateSpan = document.getElementById('exchangeRate');
+      const transactionFeeSpan = document.getElementById('transactionFee');
+      const insuranceFeeDiv = document.getElementById('insuranceFee');
+      const insuranceFeeAmountSpan = document.getElementById('insuranceFeeAmount');
+      const totalAmountSpan = document.getElementById('totalAmount');
+      const statusMessage = document.getElementById('statusMessage');
+      const submitButton = document.getElementById('submitButton');
+      const remittancesList = document.getElementById('remittancesList');
+      const remittancesContainer = document.getElementById('remittancesContainer');
+      
+      let remittances = [];
+      
+      // Calculate TZS amount when amount or currency changes
+      function calculateTzsAmount() {
+        const amount = parseFloat(amountInput.value) || 0;
+        const currency = sourceCurrencySelect.value;
+        
+        if (amount <= 0) {
+          transactionSummary.classList.add('hidden');
+          return;
+        }
+        
+        let exchangeRate;
+        if (currency === 'XLM') {
+          // Approx 2500 TZS per XLM
+          exchangeRate = 2500 + (Math.random() * 100 - 50);
+        } else if (currency === 'USDC') {
+          // Approx 2300 TZS per USD
+          exchangeRate = 2300 + (Math.random() * 100 - 50);
+        } else {
+          exchangeRate = 1;
+        }
+        
+        const tzsAmount = amount * exchangeRate;
+        const transactionFee = amount * 0.005; // 0.5% fee
+        let insuranceFee = 0;
+        
+        if (insuranceCheckbox.checked) {
+          insuranceFee = amount * 0.01; // 1% insurance fee
+          insuranceFeeDiv.classList.remove('hidden');
+          insuranceFeeAmountSpan.textContent = insuranceFee.toFixed(6) + ' ' + currency;
+        } else {
+          insuranceFeeDiv.classList.add('hidden');
+        }
+        
+        const totalAmount = amount + transactionFee + insuranceFee;
+        
+        tzsAmountSpan.textContent = tzsAmount.toFixed(0) + ' TZS';
+        exchangeRateSpan.textContent = '1 ' + currency + ' = ' + exchangeRate.toFixed(2) + ' TZS';
+        transactionFeeSpan.textContent = transactionFee.toFixed(6) + ' ' + currency;
+        totalAmountSpan.textContent = totalAmount.toFixed(6) + ' ' + currency;
+        
+        transactionSummary.classList.remove('hidden');
+      }
+      
+      amountInput.addEventListener('input', calculateTzsAmount);
+      sourceCurrencySelect.addEventListener('change', calculateTzsAmount);
+      insuranceCheckbox.addEventListener('change', calculateTzsAmount);
+      
+      // Form submission
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const recipientPhone = document.getElementById('recipientPhone').value;
+        const recipientName = document.getElementById('recipientName').value;
+        const amount = parseFloat(amountInput.value);
+        const sourceCurrency = sourceCurrencySelect.value;
+        const insurance = insuranceCheckbox.checked;
+        const notes = document.getElementById('notes').value;
+        
+        // Validate phone number (Tanzania format)
+        const phoneRegex = /^(0|\+?255)[0-9]{9}$/;
+        if (!phoneRegex.test(recipientPhone)) {
+          showStatus('error', 'Invalid Tanzania phone number format. Use +255XXXXXXXXX or 0XXXXXXXXX');
+          return;
+        }
+        
+        // Validate amount
+        if (isNaN(amount) || amount <= 0) {
+          showStatus('error', 'Please enter a valid amount');
+          return;
+        }
+        
+        // Simulate sending crypto to M-Pesa
+        showStatus('processing', 'Processing your transaction...');
+        submitButton.disabled = true;
+        submitButton.classList.add('bg-gray-400');
+        submitButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+        submitButton.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Processing...
+        `;
+        
+        // Simulate API call delay
+        setTimeout(function() {
+          const tzsAmount = parseFloat(tzsAmountSpan.textContent);
+          
+          // Create a new remittance record
+          const newRemittance = {
+            id: 'mpesa_' + Math.random().toString(36).substring(2, 8),
+            recipientPhone: recipientPhone,
+            recipientName: recipientName,
+            amount: amount,
+            currency: sourceCurrency,
+            targetAmount: tzsAmount,
+            targetCurrency: 'TZS',
+            status: 'processing',
+            createdAt: new Date().toISOString(),
+            notes: notes,
+            insurance: insurance
+          };
+          
+          // Add to remittances list
+          remittances.unshift(newRemittance);
+          updateRemittancesList();
+          
+          // Show success message
+          showStatus('success', `Successfully sent ${amount} ${sourceCurrency} to ${recipientName} via M-Pesa. They will receive ${tzsAmount} TZS.`);
+          
+          // Reset form
+          form.reset();
+          transactionSummary.classList.add('hidden');
+          
+          // Re-enable submit button
+          submitButton.disabled = false;
+          submitButton.classList.remove('bg-gray-400');
+          submitButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+          submitButton.textContent = 'Send to M-Pesa';
+          
+          // Simulate status updates for the remittance
+          simulateStatusUpdates(newRemittance.id);
+        }, 3000);
+      });
+      
+      // Show status message
+      function showStatus(type, message) {
+        statusMessage.textContent = message;
+        statusMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800');
+        
+        if (type === 'success') {
+          statusMessage.classList.add('bg-green-100', 'text-green-800');
+        } else if (type === 'error') {
+          statusMessage.classList.add('bg-red-100', 'text-red-800');
+        } else if (type === 'processing') {
+          statusMessage.classList.add('bg-blue-100', 'text-blue-800');
+        }
+      }
+      
+      // Update remittances list
+      function updateRemittancesList() {
+        if (remittances.length > 0) {
+          remittancesList.classList.remove('hidden');
+          remittancesContainer.innerHTML = '';
+          
+          remittances.forEach(remittance => {
+            const date = new Date(remittance.createdAt);
+            const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+            
+            const statusClass = 
+              remittance.status === 'completed' ? 'bg-green-100 text-green-800' :
+              remittance.status === 'failed' ? 'bg-red-100 text-red-800' :
+              'bg-yellow-100 text-yellow-800';
+            
+            const remittanceElement = document.createElement('div');
+            remittanceElement.className = 'border border-gray-200 rounded-lg p-4';
+            remittanceElement.innerHTML = `
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="font-semibold">${remittance.recipientName}</h3>
+                  <p class="text-sm text-gray-600">${remittance.recipientPhone}</p>
+                  <p class="text-sm text-gray-600">${formattedDate}</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold">${remittance.amount} ${remittance.currency}</p>
+                  <p class="text-sm text-gray-600">${remittance.targetAmount} ${remittance.targetCurrency}</p>
+                  <span class="inline-block px-2 py-1 text-xs rounded ${statusClass} mt-2">${remittance.status}</span>
+                </div>
+              </div>
+              ${remittance.notes ? `<p class="mt-2 text-sm text-gray-700">${remittance.notes}</p>` : ''}
+              ${remittance.status === 'processing' ? 
+                `<button class="check-status-btn mt-2 text-sm text-blue-600 hover:text-blue-800" data-id="${remittance.id}">Check Status</button>` : 
+                ''
+              }
+            `;
+            
+            remittancesContainer.appendChild(remittanceElement);
+          });
+          
+          // Add event listeners to "Check Status" buttons
+          document.querySelectorAll('.check-status-btn').forEach(button => {
+            button.addEventListener('click', function() {
+              const remittanceId = this.getAttribute('data-id');
+              checkRemittanceStatus(remittanceId);
+            });
+          });
+        }
+      }
+      
+      // Check remittance status
+      function checkRemittanceStatus(remittanceId) {
+        const button = document.querySelector(`.check-status-btn[data-id="${remittanceId}"]`);
+        button.textContent = 'Checking...';
+        button.disabled = true;
+        
+        // Simulate API call delay
+        setTimeout(function() {
+          // Find the remittance
+          const remittanceIndex = remittances.findIndex(r => r.id === remittanceId);
+          
+          if (remittanceIndex !== -1) {
+            // Randomly set status to either 'completed' or keep as 'processing'
+            if (Math.random() > 0.5) {
+              remittances[remittanceIndex].status = 'completed';
+              showStatus('success', `Remittance to ${remittances[remittanceIndex].recipientName} has been completed successfully!`);
+            } else {
+              showStatus('processing', `Remittance to ${remittances[remittanceIndex].recipientName} is still processing. Please check again later.`);
+            }
+            
+            // Update the UI
+            updateRemittancesList();
+          }
+        }, 1500);
+      }
+      
+      // Simulate status updates for new remittances
+      function simulateStatusUpdates(remittanceId) {
+        // After 10-15 seconds, randomly complete some remittances
+        setTimeout(function() {
+          const remittanceIndex = remittances.findIndex(r => r.id === remittanceId);
+          
+          if (remittanceIndex !== -1 && remittances[remittanceIndex].status === 'processing') {
+            if (Math.random() > 0.3) {
+              remittances[remittanceIndex].status = 'completed';
+            }
+            
+            // Update the UI
+            updateRemittancesList();
+          }
+        }, 10000 + Math.random() * 5000);
+      }
+    });
+  </script>
+</body>
+</html>

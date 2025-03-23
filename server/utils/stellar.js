@@ -3,10 +3,10 @@ const StellarSdk = require('stellar-sdk');
 // Configure Stellar network (testnet or public)
 const setupStellarNetwork = () => {
   if (process.env.STELLAR_NETWORK === 'TESTNET') {
-    StellarSdk.Network.useTestNetwork();
+    StellarSdk.Networks.TESTNET;
     return new StellarSdk.Server('https://horizon-testnet.stellar.org');
   } else {
-    StellarSdk.Network.usePublicNetwork();
+    StellarSdk.Networks.PUBLIC;
     return new StellarSdk.Server('https://horizon.stellar.org');
   }
 };

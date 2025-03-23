@@ -17,20 +17,21 @@ import Login from './components/auth/Login';
 import Dashboard from './components/dashboard/Dashboard';
 import Wallet from './components/wallet/Wallet';
 import SendMoney from './components/remittance/SendMoney';
-import Remittances from './components/remittance/Remittances';
+// Remittances page removed as per user request
 import RemittanceDetails from './components/remittance/RemittanceDetails';
 import FamilyPool from './components/family/FamilyPool';
-import CreatePool from './components/family/CreatePool';
+import CreateFamilyPool from './components/family/CreateFamilyPool';
 import Profile from './components/profile/Profile';
 import SwapPage from './pages/SwapPage';
 
 // Public Pages
-import Home from './components/pages/Home';
-import About from './components/pages/About';
-import NotFound from './components/pages/NotFound';
+import Landing from './pages/Landing';
+import About from './pages/About';
+import NotFound from './pages/NotFound';
 
 // Styles
 import './App.css';
+import './styles/custom.css';
 
 const App = () => {
   return (
@@ -40,10 +41,10 @@ const App = () => {
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <Alert />
-            <main className="flex-grow container mx-auto px-4 py-6">
+            <main className="flex-grow container mx-auto px-4 py-6 animate-fade-in">
               <Routes>
                 {/* Public Routes */}
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<Landing />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
@@ -55,27 +56,24 @@ const App = () => {
                 />
                 <Route 
                   path="/wallet" 
-                  element={<PrivateRoute component={Wallet} />} 
+                  element={<Wallet />} 
                 />
                 <Route 
                   path="/send-money" 
                   element={<PrivateRoute component={SendMoney} />} 
                 />
-                <Route 
-                  path="/remittances" 
-                  element={<PrivateRoute component={Remittances} />} 
-                />
+                                {/* Remittances route removed as per user request */}
                 <Route 
                   path="/remittances/:id" 
                   element={<PrivateRoute component={RemittanceDetails} />} 
                 />
                 <Route 
-                  path="/family-pool" 
+                  path="/family-pools" 
                   element={<PrivateRoute component={FamilyPool} />} 
                 />
                 <Route 
-                  path="/family-pool/create" 
-                  element={<PrivateRoute component={CreatePool} />} 
+                  path="/family-pools/create" 
+                  element={<PrivateRoute component={CreateFamilyPool} />} 
                 />
                 <Route 
                   path="/profile" 

@@ -11,6 +11,7 @@ const userRoutes = require('./routes/users');
 const walletRoutes = require('./routes/wallets');
 const transactionRoutes = require('./routes/transactions');
 const remittanceRoutes = require('./routes/remittances');
+const mpesaRemittanceRoutes = require('./routes/mpesaRemittance');
 
 // Initialize Express app
 const app = express();
@@ -27,6 +28,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/wallets', walletRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/remittances', remittanceRoutes);
+app.use('/api/mpesa', mpesaRemittanceRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="ThemeStarz">
+
+    <link href="assets/fonts/font-awesome.css" rel="stylesheet" type="text/css">
+    <link href="assets/fonts/elegant-fonts.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700,900" rel="stylesheet">
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.css" type="text/css">
+    <link rel="stylesheet" href="assets/css/owl.carousel.css" type="text/css">
+    <link rel="stylesheet" href="assets/css/magnific-popup.css" type="text/css">
+    <link rel="stylesheet" href="assets/css/trackpad-scroll-emulator.css" type="text/css">
+    <link rel="stylesheet" href="assets/css/style.css" type="text/css">
+
+
+    <title>Building building and building...</title>
+
+</head>
+
+<body class=" frame">
+
+<div id="outer-wrapper" class="animate translate-z-in">
+    <div id="inner-wrapper">
+        <div id="table-wrapper">
+            <div class="container">
+                <div id="row-header" style="display: flex;">
+                    <div style="border-radius: 100%; background-color: white; padding: 6px; max-width: 70px" class="animate animate fade-in animation-time-3s">
+<!--                        <img src="assets/img/logo.png" alt="">-->
+                    </div>
+                </div>
+                <!--end row-header-->
+                <div id="row-content">
+                    <div id="content-wrapper">
+                        <div class="row vertical-aligned-wrapper">
+                            <div class="col-md-4 col-sm-4 col-xs-12 vertical-aligned-element">
+                                <div class="image animate translate-z-in animation-time-2s delay-03s">
+<!--                                    <img src="assets/img/xbull-wallet.png" alt="">-->
+                                </div>
+                            </div>
+                            <div class="col-md-8 col-sm-8 col-xs-12 vertical-aligned-element">
+                                <div id="content" class="animate translate-z-in animation-time-2s delay-05s">
+                                    <h1>We're building this site</h1>
+                                    <h2 class="opacity-70">In the meantime, check our Open Source Wallet</h2>
+                                    <div class="row" style="margin-bottom: 12px">
+                                        <div class="col-md-8 col-sm-8">
+                                            <p>
+                                                <b style="color: white">xBull Wallet</b> is a free, non-custodial and Open Source Wallet for the Stellar Blockchain network. Use our wallet to send, receive, and exchange any asset in the stellar network with a completely decentralized exchange.
+                                            </p>
+                                            <p>
+                                                You can check more about it <a href="https://github.com/Creit-Tech/xBull-Wallet" style="font-weight: bold; color: #C19CFC">here</a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <a href="https://chrome.google.com/webstore/detail/xbull-wallet/omajpeaffjgmlpmhbfdjepdejoemifpe" class="btn btn-default btn-framed icon"><i class="fa fa-chrome"></i>Chrome</a>
+                                    <a href="https://addons.mozilla.org/es/firefox/addon/xbull-wallet/" class="btn btn-default btn-framed icon"><i class="fa fa-firefox"></i>Firefox</a>
+                                    <a href="https://play.google.com/store/apps/details?id=app.xbull.mobile" class="btn btn-default btn-framed icon"><i class="fa fa-android"></i>Google Play</a>
+                                    <a href="https://apps.apple.com/us/app/xbull-wallet/id6705122563" class="btn btn-default btn-framed icon"><i class="fa fa-apple"></i>App Store</a>
+
+                                </div>
+                                <!--end content-->
+                            </div>
+                        </div>
+                    </div>
+                    <!--end content-wrapper-->
+                </div>
+            </div>
+            <!--end container-->
+        </div>
+        <!--end table-wrapper-->
+        <div class="background-wrapper has-vignette">
+            <div class="bg-transfer opacity-40"><img src="assets/img/background-13.jpg" alt=""></div>
+        </div>
+        <!--end background-wrapper-->
+    </div>
+    <!--end inner-wrapper-->
+</div>
+<!--end outer-wrapper-->
+
+<div class="backdrop"></div>
+
+<script type="text/javascript" src="assets/js/jquery-2.2.1.min.js"></script>
+<script type="text/javascript" src="assets/bootstrap/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="assets/js/jquery.validate.min.js"></script>
+<script type="text/javascript" src="assets/js/jquery.magnific-popup.min.js"></script>
+<script type="text/javascript" src="assets/js/jquery.trackpad-scroll-emulator.min.js"></script>
+<script type="text/javascript" src="assets/js/custom.js"></script>
+
+
+</body>

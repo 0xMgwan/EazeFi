@@ -23,13 +23,40 @@ const TokenSwap = () => {
   useEffect(() => {
     const fetchPairs = async () => {
       try {
-        const res = await axios.get('/api/sdex/pairs');
-        setPairs(res.data);
-        if (res.data.length > 0) {
-          setSelectedPair(res.data[0]);
+        // Mock data for trading pairs
+        const mockPairs = [
+          {
+            baseAsset: 'XLM:native',
+            counterAsset: 'USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+            lastPrice: 0.25,
+            volume24h: 1250000
+          },
+          {
+            baseAsset: 'XLM:native',
+            counterAsset: 'BTC:GBDEVU63Y6NTHJQQZIKVTC23NWLQVP3WJ2RI2OTSJTNYOIGICST6DUXR',
+            lastPrice: 0.000002,
+            volume24h: 850000
+          },
+          {
+            baseAsset: 'USDC:GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+            counterAsset: 'BTC:GBDEVU63Y6NTHJQQZIKVTC23NWLQVP3WJ2RI2OTSJTNYOIGICST6DUXR',
+            lastPrice: 0.000041,
+            volume24h: 560000
+          },
+          {
+            baseAsset: 'XLM:native',
+            counterAsset: 'TZS:GACWIA2XGDFWWN3WKPX63JTK4S2J5NDPNOIVYMZY6RVTS7LWF2VHZLV3',
+            lastPrice: 650.25,
+            volume24h: 2450000
+          }
+        ];
+        
+        setPairs(mockPairs);
+        if (mockPairs.length > 0) {
+          setSelectedPair(mockPairs[0]);
         }
       } catch (err) {
-        console.error('Error fetching trading pairs:', err);
+        console.error('Error setting mock trading pairs:', err);
         setError('Could not load trading pairs');
       }
     };
@@ -53,29 +80,59 @@ const TokenSwap = () => {
 
     try {
       setLoading(true);
-      const res = await axios.get('/api/sdex/rate', {
-        params: {
-          sourceAsset: selectedPair.baseAsset,
-          destAsset: selectedPair.counterAsset,
-          amount
-        }
-      });
       
-      setExchangeRate(res.data.exchangeRate);
-      setEstimatedReceive(res.data.destAmount);
+      // Mock exchange rate calculation
+      let mockRate;
+      let mockLiquidity;
       
-      // Also fetch liquidity info
-      const liquidityRes = await axios.get('/api/sdex/liquidity', {
-        params: {
-          baseAsset: selectedPair.baseAsset,
-          counterAsset: selectedPair.counterAsset
-        }
-      });
+      // Different rates based on the pair
+      if (selectedPair.baseAsset.includes('XLM') && selectedPair.counterAsset.includes('USDC')) {
+        mockRate = 0.25 + (Math.random() * 0.02 - 0.01); // Around 0.25 USD per XLM
+        mockLiquidity = {
+          bids: 2500000,
+          asks: 2200000,
+          spread: 0.0015
+        };
+      } else if (selectedPair.baseAsset.includes('XLM') && selectedPair.counterAsset.includes('BTC')) {
+        mockRate = 0.000002 + (Math.random() * 0.0000002 - 0.0000001); // Around 0.000002 BTC per XLM
+        mockLiquidity = {
+          bids: 1800000,
+          asks: 1500000,
+          spread: 0.0022
+        };
+      } else if (selectedPair.baseAsset.includes('USDC') && selectedPair.counterAsset.includes('BTC')) {
+        mockRate = 0.000041 + (Math.random() * 0.000002 - 0.000001); // Around 0.000041 BTC per USDC
+        mockLiquidity = {
+          bids: 1200000,
+          asks: 980000,
+          spread: 0.0028
+        };
+      } else if (selectedPair.baseAsset.includes('XLM') && selectedPair.counterAsset.includes('TZS')) {
+        mockRate = 650.25 + (Math.random() * 10 - 5); // Around 650 TZS per XLM
+        mockLiquidity = {
+          bids: 3500000,
+          asks: 3200000,
+          spread: 0.0018
+        };
+      } else {
+        // Default fallback
+        mockRate = 1.0 + (Math.random() * 0.1 - 0.05);
+        mockLiquidity = {
+          bids: 1000000,
+          asks: 900000,
+          spread: 0.002
+        };
+      }
       
-      setLiquidityInfo(liquidityRes.data);
+      setExchangeRate(mockRate);
+      setEstimatedReceive(parseFloat(amount) * mockRate);
+      // Add spreadPercentage and totalLiquidity properties
+      mockLiquidity.spreadPercentage = mockLiquidity.spread * 100;
+      mockLiquidity.totalLiquidity = mockLiquidity.bids + mockLiquidity.asks;
+      setLiquidityInfo(mockLiquidity);
       setError('');
     } catch (err) {
-      console.error('Error fetching exchange rate:', err);
+      console.error('Error calculating mock exchange rate:', err);
       setError('Could not determine exchange rate');
     } finally {
       setLoading(false);
@@ -96,18 +153,37 @@ const TokenSwap = () => {
       setError('');
       setSuccess('');
       
-      const res = await axios.post('/api/sdex/swap', {
-        sellAsset: selectedPair.baseAsset,
-        buyAsset: selectedPair.counterAsset,
-        amount,
-        slippageTolerance
-      });
+      // Mock swap execution
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      setSuccess(`Swap successful! You received ${res.data.swap.buyAmount} ${selectedPair.counterAsset.split(':')[0]}`);
+      // Calculate received amount with a small random slippage
+      const actualSlippage = Math.random() * (parseFloat(slippageTolerance) / 100);
+      const receivedAmount = parseFloat(estimatedReceive) ? (parseFloat(estimatedReceive) * (1 - actualSlippage)).toFixed(6) : '0.000000';
       
-      // Reload wallet to show updated balances
-      await loadWallet();
-      await loadUser();
+      // Create mock transaction data
+      const mockSwapResult = {
+        swap: {
+          sellAsset: selectedPair.baseAsset,
+          buyAsset: selectedPair.counterAsset,
+          sellAmount: amount,
+          buyAmount: receivedAmount,
+          fee: parseFloat(amount) ? (parseFloat(amount) * 0.001).toFixed(6) : '0.000000',
+          exchangeRate: exchangeRate,
+          timestamp: new Date().toISOString(),
+          txHash: `TX${Math.random().toString(36).substring(2, 15).toUpperCase()}`
+        }
+      };
+      
+      setSuccess(`Swap successful! You received ${mockSwapResult.swap.buyAmount} ${selectedPair.counterAsset.split(':')[0]}`);
+      
+      // Update wallet with new balances
+      if (wallet && loadWallet) {
+        await loadWallet();
+      }
+      if (loadUser) {
+        await loadUser();
+      }
       
       // Reset form
       setAmount('');
@@ -115,7 +191,7 @@ const TokenSwap = () => {
       setExchangeRate(null);
     } catch (err) {
       console.error('Error executing swap:', err);
-      setError(err.response?.data?.msg || 'Failed to execute swap');
+      setError('Failed to execute swap');
     } finally {
       setLoading(false);
     }
@@ -210,24 +286,24 @@ const TokenSwap = () => {
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-700 font-medium">Exchange Rate:</span>
               <span className="text-gray-900">
-                1 {selectedPair ? formatAssetCode(selectedPair.baseAsset) : ''} = {exchangeRate.toFixed(6)} {selectedPair ? formatAssetCode(selectedPair.counterAsset) : ''}
+                1 {selectedPair ? formatAssetCode(selectedPair.baseAsset) : ''} = {exchangeRate ? exchangeRate.toFixed(6) : '0.000000'} {selectedPair ? formatAssetCode(selectedPair.counterAsset) : ''}
               </span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-700 font-medium">You'll Receive:</span>
               <span className="text-gray-900 font-bold">
-                {parseFloat(estimatedReceive).toFixed(6)} {selectedPair ? formatAssetCode(selectedPair.counterAsset) : ''}
+                {parseFloat(estimatedReceive) ? parseFloat(estimatedReceive).toFixed(6) : '0.000000'} {selectedPair ? formatAssetCode(selectedPair.counterAsset) : ''}
               </span>
             </div>
             {liquidityInfo && (
               <div className="mt-2 pt-2 border-t border-gray-200">
                 <div className="flex items-center text-sm text-gray-600">
                   <FaInfoCircle className="mr-1" /> 
-                  <span>Spread: {liquidityInfo.spreadPercentage.toFixed(2)}%</span>
+                  <span>Spread: {liquidityInfo && liquidityInfo.spreadPercentage ? liquidityInfo.spreadPercentage.toFixed(2) : '0.00'}%</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <FaChartLine className="mr-1" /> 
-                  <span>Liquidity: {parseFloat(liquidityInfo.totalLiquidity).toFixed(2)}</span>
+                  <span>Liquidity: {liquidityInfo && liquidityInfo.totalLiquidity ? parseFloat(liquidityInfo.totalLiquidity).toFixed(2) : '0.00'}</span>
                 </div>
               </div>
             )}
