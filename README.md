@@ -1,8 +1,7 @@
 # EazeFi
 
-![EazeFi Logo](https://i.imgur.com/PLACEHOLDER.png)
 
-A Stellar-based platform that enables anyone around the world to send tokenized mobile money instantly across borders, while also allowing recipients to use those same tokens for cross-border travel or trade. Tanzania serves as our initial implementation example, but the platform is designed to work globally.
+A Cross-border remmitance platform built on Stellar that enables anyone around the world to send tokenized mobile money instantly across borders, while also allowing recipients to use those same tokens for cross-border travel or trade. Tanzania serves as our initial implementation example with users receiving directly to theri M-pesa, however the platform is designed to work globally.
 
 [![GitHub license](https://img.shields.io/github/license/0xMgwan/EazeFi)](https://github.com/0xMgwan/EazeFi/blob/main/LICENSE)
 [![Stellar](https://img.shields.io/badge/Stellar-Testnet-brightgreen)](https://stellar.org)
@@ -344,9 +343,7 @@ EazeFi provides seamless integration with popular Stellar wallets, allowing user
 5. The application verifies the wallet and establishes a connection
 6. User can now perform transactions using their connected wallet
 
-## Hackathon Project
-
-EazeFi was initially developed for the Stellar Meridian Hackathon, showcasing how blockchain technology can revolutionize global remittances and cross-border payments. The project demonstrates several key innovations:
+## Other Integrations
 
 - **Cross-Border Remittances**: Enabling instant, low-cost money transfers between countries
 - **Mobile Money Integration**: Connecting blockchain with popular mobile payment systems
