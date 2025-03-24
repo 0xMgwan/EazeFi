@@ -15,6 +15,7 @@ const Wallet = () => {
     getTransactions,
     fundWallet,
     withdrawFromWallet,
+    setWallet,
     loading 
   } = useContext(WalletContext);
   
@@ -56,10 +57,22 @@ const Wallet = () => {
 
   useEffect(() => {
     try {
-      getWallet();
+      // Check for wallet in localStorage first
+      const savedWallet = localStorage.getItem('eazeWallet');
+      if (savedWallet) {
+        const parsedWallet = JSON.parse(savedWallet);
+        console.log('Loaded wallet from localStorage in Wallet component:', parsedWallet);
+        setWallet(parsedWallet);
+      } else {
+        // If no wallet in localStorage, try to get it from the context
+        getWallet();
+      }
+      
+      // Load balance and transaction data
       getBalance();
       getTransactions();
     } catch (error) {
+      console.log('Error loading wallet data:', error);
       console.log('Using mock data for testing');
     }
   }, []);
@@ -105,7 +118,8 @@ const Wallet = () => {
     { code: 'USDC', name: 'USD Coin' },
     { code: 'EURT', name: 'Euro Token' },
     { code: 'NGNT', name: 'Nigerian Naira Token' },
-    { code: 'KEST', name: 'Kenyan Shilling Token' }
+    { code: 'KEST', name: 'Kenyan Shilling Token' },
+    { code: 'TSHT', name: 'Tanzania Shilling Token' }
   ];
 
   // Format date
@@ -211,8 +225,35 @@ const Wallet = () => {
     setConnectWalletModal(!connectWalletModal);
   };
 
-  // Use mock data if real data isn't available, with additional safety checks
+  // Use real wallet data if available, fall back to mock data only if needed
   const displayWallet = wallet || mockWallet || { address: '', name: 'Demo Wallet', connected: false };
+  
+  // Add a console log to see the current wallet state
+  console.log('Current wallet state:', wallet);
+  console.log('Display wallet:', displayWallet);
+  
+  // Update wallet connection status based on the wallet object
+  useEffect(() => {
+    if (wallet) {
+      console.log('Wallet connected:', wallet);
+      // If we have a wallet object, ensure it's marked as connected
+      if (!wallet.connected) {
+        const updatedWallet = { ...wallet, connected: true };
+        // Update the wallet context
+        if (typeof setWallet === 'function') {
+          setWallet(updatedWallet);
+          
+          // Also update localStorage
+          try {
+            localStorage.setItem('eazeWallet', JSON.stringify(updatedWallet));
+            console.log('Updated wallet in localStorage');
+          } catch (err) {
+            console.error('Error saving wallet to localStorage:', err);
+          }
+        }
+      }
+    }
+  }, [wallet, setWallet]);
   
   // Ensure balances is an array before checking length
   const displayBalances = Array.isArray(balances) && balances.length > 0 
@@ -241,6 +282,30 @@ const Wallet = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-black text-white px-4 py-8">
       <div className="container mx-auto max-w-6xl">
+        {/* Wallet Connection Status Banner */}
+        {displayWallet && displayWallet.connected === true && (
+          <div className="bg-green-500/10 backdrop-blur-sm rounded-2xl p-4 mb-6 border border-green-500/30 transition-all duration-500">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="h-3 w-3 rounded-full bg-green-500 mr-3 animate-pulse"></div>
+                <p className="text-green-400 font-medium">Wallet Connected Successfully</p>
+              </div>
+              <div className="flex items-center">
+                <p className="text-green-300/70 text-sm mr-3">{formatWalletAddress(displayWallet.address)}</p>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(displayWallet.address);
+                    setCopySuccess(true);
+                    setTimeout(() => setCopySuccess(false), 2000);
+                  }}
+                  className="text-green-400 hover:text-green-300 transition-all duration-300"
+                >
+                  {copySuccess ? 'Copied!' : <FaCopy size={14} />}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Header Section */}
         <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 p-1">
           <div className="absolute inset-0 bg-grid-white/5 bg-[size:20px_20px] [mask-image:linear-gradient(to_bottom,white,transparent)]">
@@ -252,13 +317,21 @@ const Wallet = () => {
                 <div className="bg-blue-500/20 p-2 rounded-lg mr-3">
                   <BiChip className="text-blue-400 text-2xl" />
                 </div>
-                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">Quantum Wallet</h1>
+                <div>
+                  <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">Your Wallet</h1>
+                  {displayWallet && displayWallet.connected === true && (
+                    <div className="flex items-center mt-1">
+                      <div className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                      <p className="text-green-400 text-sm">Connected</p>
+                    </div>
+                  )}
+                </div>
               </div>
               <p className="text-blue-200/70 mt-2 font-light">Next-gen digital asset management</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => displayWallet ? setFundModal(true) : toggleConnectWalletModal()}
+                onClick={() => displayWallet && displayWallet.connected === true ? setFundModal(true) : toggleConnectWalletModal()}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium py-2.5 px-5 rounded-xl transition duration-300 flex items-center shadow-lg shadow-blue-900/30 hover:shadow-blue-900/50"
               >
                 <FaRocket className="mr-2" size={14} /> {displayWallet && displayWallet.connected === true ? 'Fund Wallet' : 'Connect Wallet'}

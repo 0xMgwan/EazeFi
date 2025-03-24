@@ -10,7 +10,9 @@ import ConnectWalletModal from '../wallet/ConnectWalletModal';
 
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useContext(AuthContext);
-  const { wallet } = useContext(WalletContext);
+  // Fix: Properly import from WalletContext
+  const walletContext = useContext(WalletContext);
+  const { wallet } = walletContext || {};
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -43,6 +45,24 @@ const Navbar = () => {
   const onLogout = () => {
     logout();
     setIsMenuOpen(false);
+  };
+  
+  const disconnectWallet = () => {
+    // Clear wallet from context using the proper context method
+    if (walletContext && typeof walletContext.setWallet === 'function') {
+      walletContext.setWallet(null);
+    } else if (window.walletContext && typeof window.walletContext.setWallet === 'function') {
+      // Fallback to global context if available
+      window.walletContext.setWallet(null);
+    }
+    
+    // Remove from localStorage
+    localStorage.removeItem('eazeWallet');
+    
+    // Close menu if open
+    setIsMenuOpen(false);
+    
+    console.log('Wallet disconnected');
   };
   
   const handleHover = (item) => {
@@ -125,7 +145,7 @@ const Navbar = () => {
       <NavLink to="/wallet" icon={<FaWallet className="text-lg" />}>Wallet</NavLink>
       <NavLink to="/swap" icon={<FaExchangeAlt className="text-lg" />}>Swap</NavLink>
       <NavLink to="/send-money" icon={<FaPaperPlane className="text-lg" />}>Send Money</NavLink>
-      <NavLink to="/family-pool" icon={<FaUsers className="text-lg" />}>Family Pool</NavLink>
+      <NavLink to="/family-pools" icon={<FaUsers className="text-lg" />}>Family Pool</NavLink>
       <NavLink to="/profile" icon={<FaUser className="text-lg" />}>Profile</NavLink>
       <li className="py-2 md:py-0">
         <a 
@@ -149,7 +169,7 @@ const Navbar = () => {
       <MobileNavLink to="/wallet" icon={<FaWallet className="text-xl" />}>Wallet</MobileNavLink>
       <MobileNavLink to="/swap" icon={<FaExchangeAlt className="text-xl" />}>Swap</MobileNavLink>
       <MobileNavLink to="/send-money" icon={<FaPaperPlane className="text-xl" />}>Send Money</MobileNavLink>
-      <MobileNavLink to="/family-pool" icon={<FaUsers className="text-xl" />}>Family Pool</MobileNavLink>
+      <MobileNavLink to="/family-pools" icon={<FaUsers className="text-xl" />}>Family Pool</MobileNavLink>
       <MobileNavLink to="/profile" icon={<FaUser className="text-xl" />}>Profile</MobileNavLink>
       <li className="mt-5 pt-5 border-t border-neon-blue/10">
         <a 
@@ -169,79 +189,160 @@ const Navbar = () => {
 
   const guestLinks = (
     <Fragment>
-      <li className="py-2 md:py-0 md:ml-4">
-        <Link 
-          to="/register" 
-          className="flex items-center px-5 py-2.5 rounded-xl text-gray-200 border border-neon-purple/20 hover:border-neon-purple/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
-          onMouseEnter={() => handleHover('register')}
-          onMouseLeave={handleHoverExit}
-        >
-          <HiOutlineSparkles className="mr-2 text-neon-purple group-hover:animate-spin-slow" />
-          <span className="font-medium">Register</span>
-        </Link>
-      </li>
-      <li className="py-2 md:py-0 md:ml-3">
-        <Link 
-          to="/login" 
-          className="flex items-center px-5 py-2.5 rounded-xl text-gray-200 border border-neon-blue/20 hover:border-neon-blue/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
-          onMouseEnter={() => handleHover('login')}
-          onMouseLeave={handleHoverExit}
-        >
-          <IoFlash className="mr-2 text-neon-blue group-hover:animate-pulse" />
-          <span className="font-medium">Login</span>
-        </Link>
-      </li>
-      <li className="py-2 md:py-0 md:ml-3">
-        <button
-          className="flex items-center bg-gradient-to-r from-neon-blue/80 to-neon-purple/80 text-white px-5 py-2.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
-          onClick={() => setIsWalletModalOpen(true)}
-          onMouseEnter={() => handleHover('wallet')}
-          onMouseLeave={handleHoverExit}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 animate-pulse-slow opacity-30"></div>
-          <FaLink className="mr-2 group-hover:animate-pulse" /> 
-          <span>Connect Wallet</span>
-        </button>
-      </li>
+      {wallet && wallet.connected ? (
+        // Show wallet connected status and disconnect button
+        <Fragment>
+          <li className="py-2 md:py-0 md:ml-4">
+            <Link 
+              to="/dashboard" 
+              className="flex items-center px-5 py-2.5 rounded-xl text-gray-200 border border-green-500/20 hover:border-green-500/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
+              onMouseEnter={() => handleHover('dashboard')}
+              onMouseLeave={handleHoverExit}
+            >
+              <RiDashboardLine className="mr-2 text-green-500 group-hover:animate-pulse" />
+              <div className="flex items-center">
+                <div className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                <span className="font-medium">Dashboard</span>
+              </div>
+            </Link>
+          </li>
+          <li className="py-2 md:py-0 md:ml-3">
+            <button
+              className="flex items-center bg-gradient-to-r from-red-500/80 to-red-600/80 text-white px-5 py-2.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
+              onClick={disconnectWallet}
+              onMouseEnter={() => handleHover('disconnect')}
+              onMouseLeave={handleHoverExit}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 animate-pulse-slow opacity-30"></div>
+              <FaSignOutAlt className="mr-2 group-hover:animate-pulse" /> 
+              <span>Disconnect Wallet</span>
+            </button>
+          </li>
+        </Fragment>
+      ) : (
+        // Show regular guest links when no wallet is connected
+        <Fragment>
+          <li className="py-2 md:py-0 md:ml-4">
+            <Link 
+              to="/register" 
+              className="flex items-center px-5 py-2.5 rounded-xl text-gray-200 border border-neon-purple/20 hover:border-neon-purple/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
+              onMouseEnter={() => handleHover('register')}
+              onMouseLeave={handleHoverExit}
+            >
+              <HiOutlineSparkles className="mr-2 text-neon-purple group-hover:animate-spin-slow" />
+              <span className="font-medium">Register</span>
+            </Link>
+          </li>
+          <li className="py-2 md:py-0 md:ml-3">
+            <Link 
+              to="/login" 
+              className="flex items-center px-5 py-2.5 rounded-xl text-gray-200 border border-neon-blue/20 hover:border-neon-blue/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
+              onMouseEnter={() => handleHover('login')}
+              onMouseLeave={handleHoverExit}
+            >
+              <IoFlash className="mr-2 text-neon-blue group-hover:animate-pulse" />
+              <span className="font-medium">Login</span>
+            </Link>
+          </li>
+          <li className="py-2 md:py-0 md:ml-3">
+            <button
+              className="flex items-center bg-gradient-to-r from-neon-blue/80 to-neon-purple/80 text-white px-5 py-2.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
+              onClick={() => setIsWalletModalOpen(true)}
+              onMouseEnter={() => handleHover('wallet')}
+              onMouseLeave={handleHoverExit}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 animate-pulse-slow opacity-30"></div>
+              <FaLink className="mr-2 group-hover:animate-pulse" /> 
+              <span>Connect Wallet</span>
+            </button>
+          </li>
+        </Fragment>
+      )}
     </Fragment>
   );
   
   const mobileGuestLinks = (
     <Fragment>
-      <li className="mb-3">
-        <Link 
-          to="/register" 
-          className="flex items-center px-5 py-3.5 rounded-xl text-gray-200 border border-neon-purple/20 hover:border-neon-purple/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
-          onMouseEnter={() => handleHover('register-mobile')}
-          onMouseLeave={handleHoverExit}
-        >
-          <HiOutlineSparkles className="text-xl mr-3 text-neon-purple group-hover:animate-spin-slow" />
-          <span className="font-medium">Register</span>
-        </Link>
-      </li>
-      <li className="mb-3">
-        <Link 
-          to="/login" 
-          className="flex items-center px-5 py-3.5 rounded-xl text-gray-200 border border-neon-blue/20 hover:border-neon-blue/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
-          onMouseEnter={() => handleHover('login-mobile')}
-          onMouseLeave={handleHoverExit}
-        >
-          <IoFlash className="text-xl mr-3 text-neon-blue group-hover:animate-pulse" />
-          <span className="font-medium">Login</span>
-        </Link>
-      </li>
-      <li className="mt-5">
-        <button
-          className="flex items-center justify-center w-full bg-gradient-to-r from-neon-blue/80 to-neon-purple/80 text-white px-5 py-3.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
-          onClick={() => setIsWalletModalOpen(true)}
-          onMouseEnter={() => handleHover('wallet-mobile')}
-          onMouseLeave={handleHoverExit}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 animate-pulse-slow opacity-30"></div>
-          <FaLink className="text-xl mr-3 group-hover:animate-pulse" /> 
-          <span>Connect Wallet</span>
-        </button>
-      </li>
+      {wallet && wallet.connected ? (
+        // Show wallet connected status and disconnect button for mobile
+        <Fragment>
+          <li className="mb-3">
+            <Link 
+              to="/dashboard" 
+              className="flex items-center px-5 py-3.5 rounded-xl text-gray-200 border border-green-500/20 hover:border-green-500/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
+              onMouseEnter={() => handleHover('dashboard-mobile')}
+              onMouseLeave={handleHoverExit}
+            >
+              <RiDashboardLine className="text-xl mr-3 text-green-500 group-hover:animate-pulse" />
+              <div className="flex items-center">
+                <div className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                <span className="font-medium">Dashboard</span>
+              </div>
+            </Link>
+          </li>
+          <li className="mb-3">
+            <Link 
+              to="/wallet" 
+              className="flex items-center px-5 py-3.5 rounded-xl text-gray-200 border border-green-500/20 hover:border-green-500/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
+              onMouseEnter={() => handleHover('wallet-mobile')}
+              onMouseLeave={handleHoverExit}
+            >
+              <FaWallet className="text-xl mr-3 text-green-500 group-hover:animate-pulse" />
+              <span className="font-medium">Wallet</span>
+            </Link>
+          </li>
+          <li className="mt-5">
+            <button
+              className="flex items-center justify-center w-full bg-gradient-to-r from-red-500/80 to-red-600/80 text-white px-5 py-3.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
+              onClick={disconnectWallet}
+              onMouseEnter={() => handleHover('disconnect-mobile')}
+              onMouseLeave={handleHoverExit}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 animate-pulse-slow opacity-30"></div>
+              <FaSignOutAlt className="text-xl mr-3 group-hover:animate-pulse" /> 
+              <span>Disconnect Wallet</span>
+            </button>
+          </li>
+        </Fragment>
+      ) : (
+        // Show regular guest links when no wallet is connected
+        <Fragment>
+          <li className="mb-3">
+            <Link 
+              to="/register" 
+              className="flex items-center px-5 py-3.5 rounded-xl text-gray-200 border border-neon-purple/20 hover:border-neon-purple/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
+              onMouseEnter={() => handleHover('register-mobile')}
+              onMouseLeave={handleHoverExit}
+            >
+              <HiOutlineSparkles className="text-xl mr-3 text-neon-purple group-hover:animate-spin-slow" />
+              <span className="font-medium">Register</span>
+            </Link>
+          </li>
+          <li className="mb-3">
+            <Link 
+              to="/login" 
+              className="flex items-center px-5 py-3.5 rounded-xl text-gray-200 border border-neon-blue/20 hover:border-neon-blue/40 hover:bg-dark-surface/60 backdrop-blur-sm transition-all duration-300 group"
+              onMouseEnter={() => handleHover('login-mobile')}
+              onMouseLeave={handleHoverExit}
+            >
+              <IoFlash className="text-xl mr-3 text-neon-blue group-hover:animate-pulse" />
+              <span className="font-medium">Login</span>
+            </Link>
+          </li>
+          <li className="mt-5">
+            <button
+              className="flex items-center justify-center w-full bg-gradient-to-r from-neon-blue/80 to-neon-purple/80 text-white px-5 py-3.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
+              onClick={() => setIsWalletModalOpen(true)}
+              onMouseEnter={() => handleHover('wallet-mobile')}
+              onMouseLeave={handleHoverExit}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 animate-pulse-slow opacity-30"></div>
+              <FaLink className="text-xl mr-3 group-hover:animate-pulse" /> 
+              <span>Connect Wallet</span>
+            </button>
+          </li>
+        </Fragment>
+      )}
     </Fragment>
   );
 

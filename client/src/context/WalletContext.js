@@ -17,7 +17,34 @@ export const WalletProvider = ({ children }) => {
   // Make wallet context available globally for ConnectWalletModal
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.walletContext = { setWallet };
+      window.walletContext = { 
+        setWallet: (newWallet) => {
+          console.log('Setting wallet from global context:', newWallet);
+          setWallet(newWallet);
+          
+          // Save wallet to localStorage for persistence
+          try {
+            localStorage.setItem('eazeWallet', JSON.stringify(newWallet));
+          } catch (err) {
+            console.error('Error saving wallet to localStorage:', err);
+          }
+        },
+        getWallet: () => wallet
+      };
+    }
+  }, [wallet]);
+  
+  // Load wallet from localStorage on initial load
+  useEffect(() => {
+    try {
+      const savedWallet = localStorage.getItem('eazeWallet');
+      if (savedWallet) {
+        const parsedWallet = JSON.parse(savedWallet);
+        console.log('Loaded wallet from localStorage:', parsedWallet);
+        setWallet(parsedWallet);
+      }
+    } catch (err) {
+      console.error('Error loading wallet from localStorage:', err);
     }
   }, []);
 
@@ -473,6 +500,43 @@ export const WalletProvider = ({ children }) => {
               amount: '1200',
               reason: 'Venue booking',
               createdAt: '2025-01-10T15:20:00Z'
+            }
+          ]
+        },
+        {
+          id: 'pool_4',
+          name: 'Tanzania Business Fund',
+          description: 'For supporting family business initiatives in Tanzania',
+          token: 'TSHT',
+          createdAt: '2025-03-10T09:00:00Z',
+          createdBy: 'user_123',
+          isActive: true,
+          withdrawalLimit: '50000',
+          withdrawalPeriod: 'month',
+          contributions: [
+            {
+              id: 'contrib_9',
+              contributorId: 'user_123',
+              contributorName: 'David Machuche',
+              amount: '25000',
+              createdAt: '2025-03-10T10:15:00Z'
+            },
+            {
+              id: 'contrib_10',
+              contributorId: 'user_456',
+              contributorName: 'Sarah Johnson',
+              amount: '15000',
+              createdAt: '2025-03-12T14:30:00Z'
+            }
+          ],
+          withdrawals: [
+            {
+              id: 'withdraw_3',
+              withdrawerId: 'user_123',
+              withdrawerName: 'David Machuche',
+              amount: '10000',
+              reason: 'Business supplies',
+              createdAt: '2025-03-15T16:45:00Z'
             }
           ]
         }

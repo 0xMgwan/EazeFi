@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaExternalLinkAlt, FaChevronRight, FaSpinner, FaWallet } from 'react-icons/fa';  
 import StellarSdk from 'stellar-sdk';
 import { WalletContext } from '../../context/WalletContext';
@@ -19,13 +20,14 @@ if (typeof window !== 'undefined' && !window.freighter) {
 }
 
 const ConnectWalletModal = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const { setWallet } = useContext(WalletContext);
   const [connecting, setConnecting] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   
-  // Set to false to use real wallet connections instead of mocks
+  // Always use real wallet connections
   const [useMockWallets] = useState(false);
   
   // Initialize Stellar SDK with error handling
@@ -48,6 +50,46 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       // Check for wallet extensions
       const checkWalletExtensions = async () => {
         try {
+          // Create a more reliable detection mechanism
+          const detectWallets = async () => {
+            const walletStatus = {
+              freighter: false,
+              albedo: false,
+              xbull: false,
+              lobstr: false
+            };
+            
+            // Check for Freighter
+            if (window.freighter || (window.stellar && window.stellar.freighter)) {
+              walletStatus.freighter = true;
+            }
+            
+            // Check for Albedo
+            if (window.albedo || document.querySelector('script[src*="albedo"]')) {
+              walletStatus.albedo = true;
+            } else {
+              // Try to load Albedo dynamically
+              try {
+                await new Promise((resolve) => {
+                  const script = document.createElement('script');
+                  script.src = 'https://albedo.link/albedo-intent.js';
+                  script.onload = resolve;
+                  script.onerror = resolve; // Still resolve to continue checking
+                  document.head.appendChild(script);
+                  setTimeout(resolve, 1000); // Timeout after 1 second
+                });
+                walletStatus.albedo = typeof window.albedo !== 'undefined';
+              } catch (e) {
+                console.warn('Failed to load Albedo:', e);
+              }
+            }
+            
+            return walletStatus;
+          };
+          
+          const walletStatus = await detectWallets();
+          console.log('Detected wallet extensions:', walletStatus);
+          
           // Check Freighter
           const hasFreighter = 
             typeof window !== 'undefined' && 
@@ -156,9 +198,60 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
         console.log('Found Freighter in window.stellar.freighter');
         freighter = window.stellar.freighter;
       } else {
-        // If Freighter is not found, return error immediately
-        console.log('Freighter extension not detected');
-        return { success: false, error: 'Freighter extension not detected. Please install it from www.freighter.app' };
+        // Try to detect Freighter with a small delay
+        // Sometimes browser extensions take a moment to initialize
+        try {
+          console.log('Attempting to detect Freighter with delay...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          if (window.freighter) {
+            console.log('Found Freighter after delay');
+            freighter = window.freighter;
+          } else if (window.stellar && window.stellar.freighter) {
+            console.log('Found Freighter in window.stellar after delay');
+            freighter = window.stellar.freighter;
+          } else {
+            // If Freighter is still not found, return error
+            console.log('Freighter extension not detected after delay');
+            return { success: false, error: 'Freighter extension not detected. Please install it from www.freighter.app' };
+          }
+        } catch (detectionError) {
+          console.error('Error during Freighter detection:', detectionError);
+          return { success: false, error: 'Error detecting Freighter extension. Please refresh and try again.' };
+        }
+      }
+      
+      // Check if Freighter is connected to Testnet
+      try {
+        // Give Freighter a moment to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Make sure freighter is still available
+        if (!freighter) {
+          if (window.freighter) {
+            freighter = window.freighter;
+          } else if (window.stellar && window.stellar.freighter) {
+            freighter = window.stellar.freighter;
+          } else {
+            throw new Error('Freighter became unavailable');
+          }
+        }
+        
+        console.log('Checking Freighter network...');
+        const network = await freighter.getNetwork();
+        console.log('Freighter network:', network);
+        
+        // Accept both TESTNET and TEST as valid networks
+        if (network !== 'TESTNET' && network !== 'TEST') {
+          return { 
+            success: false, 
+            error: 'Please switch Freighter to Testnet network to connect with this application.' 
+          };
+        }
+      } catch (networkError) {
+        console.warn('Could not verify Freighter network:', networkError);
+        // Continue anyway, as we'll try to get the public key regardless
+        console.log('Continuing with connection attempt despite network check error');
       }
       
       // Freighter was found, attempt to connect
@@ -177,8 +270,25 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
         
         // After successful connection, request public key
         console.log('Requesting public key from Freighter...');
-        const publicKey = await freighter.getPublicKey();
-        console.log('Received public key from Freighter:', publicKey);
+        let publicKey;
+        
+        try {
+          publicKey = await freighter.getPublicKey();
+          console.log('Received public key from Freighter:', publicKey);
+        } catch (pkError) {
+          console.error('Error getting public key from Freighter:', pkError);
+          // Try an alternative method
+          try {
+            console.log('Trying alternative method to get public key...');
+            // Sometimes the user needs to be prompted again
+            await freighter.connect();
+            publicKey = await freighter.getPublicKey();
+            console.log('Received public key from alternative method:', publicKey);
+          } catch (altError) {
+            console.error('Alternative method also failed:', altError);
+            throw new Error('Failed to get public key from Freighter. Please make sure Freighter is unlocked and try again.');
+          }
+        }
         
         if (!publicKey) {
           console.error('No public key returned from Freighter');
@@ -205,10 +315,24 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
           createdAt: new Date().toISOString()
         };
         
-        // Update wallet context
+        // Update wallet context - try multiple methods to ensure it works
         if (setWallet) {
-          console.log('Setting wallet data in context:', walletData);
+          console.log('Updating wallet via component context');
           setWallet(walletData);
+        }
+        
+        // Also try the global context
+        if (window.walletContext && typeof window.walletContext.setWallet === 'function') {
+          console.log('Updating wallet via global context');
+          window.walletContext.setWallet(walletData);
+        }
+        
+        // As a fallback, save directly to localStorage
+        try {
+          localStorage.setItem('eazeWallet', JSON.stringify(walletData));
+          console.log('Saved wallet directly to localStorage');
+        } catch (err) {
+          console.error('Error saving wallet to localStorage:', err);
         }
         
         return { success: true, publicKey, walletData };
@@ -240,14 +364,57 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       try {
         console.log('Using Albedo wallet connection...');
         
-        // Create a consistent mock Albedo wallet for testing
-        const mockAlbedoPublicKey = 'GDZKZPFE5LUYVNMYLZ5YSI3YZZLBQAGPWXMN4P3YJZCO6HKDBZNKKCIH';
+        // Force load Albedo regardless of detection status
+        try {
+          console.log('Attempting to load Albedo dynamically...');
+          await new Promise((resolve) => {
+            // Create a script element to load Albedo
+            const script = document.createElement('script');
+            script.src = 'https://albedo.link/albedo-intent.js';
+            script.onload = () => {
+              console.log('Albedo script loaded successfully');
+              resolve();
+            };
+            script.onerror = () => {
+              console.warn('Failed to load Albedo script, but continuing anyway');
+              resolve(); // Resolve anyway to try the built-in method
+            };
+            document.head.appendChild(script);
+            
+            // Set a timeout to resolve anyway after 1 second
+            setTimeout(resolve, 1000);
+          });
+        } catch (loadError) {
+          console.warn('Error during Albedo script loading:', loadError);
+          // Continue anyway - the extension might still work
+        }
         
-        // Create wallet data directly
+        // Request public key using Albedo
+        // First check if Albedo is available
+        if (typeof window.albedo === 'undefined') {
+          console.warn('Albedo still not available after loading script');
+          // Try alternate method - create a direct intent link
+          const intentUrl = 'https://albedo.link/intent/publicKey?callback=postMessage&require_existing=true';
+          window.open(intentUrl, '_blank');
+          throw new Error('Please use the Albedo popup window that just opened to connect your wallet');
+        }
+        
+        console.log('Attempting to get public key from Albedo...');
+        const result = await window.albedo.publicKey({
+          require_existing: true
+        });
+        
+        console.log('Albedo result:', result);
+        
+        if (!result || !result.pubkey) {
+          throw new Error('Failed to get public key from Albedo');
+        }
+        
+        // Create wallet data with the real public key
         const walletData = {
           id: 'albedo_' + Date.now(),
           name: 'Albedo',
-          address: mockAlbedoPublicKey,
+          address: result.pubkey,
           type: 'stellar',
           connected: true,
           network: 'TESTNET',
@@ -256,12 +423,27 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
         
         console.log('Albedo connection successful:', walletData);
         
-        // Update wallet context
+        // Update wallet context - try multiple methods to ensure it works
         if (setWallet) {
+          console.log('Updating wallet via component context');
           setWallet(walletData);
         }
         
-        return { success: true, publicKey: mockAlbedoPublicKey, walletData };
+        // Also try the global context
+        if (window.walletContext && typeof window.walletContext.setWallet === 'function') {
+          console.log('Updating wallet via global context');
+          window.walletContext.setWallet(walletData);
+        }
+        
+        // As a fallback, save directly to localStorage
+        try {
+          localStorage.setItem('eazeWallet', JSON.stringify(walletData));
+          console.log('Saved wallet directly to localStorage');
+        } catch (err) {
+          console.error('Error saving wallet to localStorage:', err);
+        }
+        
+        return { success: true, publicKey: result.pubkey, walletData };
       } catch (albedoError) {
         console.error('Error interacting with Albedo:', albedoError);
         return { success: false, error: albedoError.message || 'Error connecting to Albedo. Please try again.' };
@@ -359,6 +541,23 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
     setError(null);
     setSuccess(false);
     
+    // Force reload wallet detection
+    if (walletName === 'Albedo' && typeof window.albedo === 'undefined') {
+      try {
+        console.log('Attempting to load Albedo dynamically before connection...');
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://albedo.link/albedo-intent.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        console.log('Albedo script loaded successfully');
+      } catch (loadError) {
+        console.warn('Failed to load Albedo:', loadError);
+      }
+    }
+    
     let result = { success: false, error: 'Not implemented' };
     
     try {
@@ -401,9 +600,15 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
         
         console.log(`Successfully connected to ${walletName}!\nPublic Key: ${shortPublicKey}`);
         setSuccess(true);
+        
+        // Set a timeout to show success message before redirecting
         setTimeout(() => {
           setConnecting(false);
           onClose();
+          
+          // Redirect to dashboard after successful connection
+          console.log('Redirecting to dashboard...');
+          navigate('/dashboard');
         }, 1500);
       } else {
         console.error(`Failed to connect to ${walletName}: ${result.error || 'Unknown error'}`);
