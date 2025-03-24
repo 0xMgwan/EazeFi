@@ -23,6 +23,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/wallets', require('./routes/wallets'));
 app.use('/api/remittances', require('./routes/remittances'));
 app.use('/api/sdex', require('./routes/sdex'));
+app.use('/sep24', require('./routes/sep/sep24'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

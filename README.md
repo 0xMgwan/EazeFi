@@ -390,6 +390,47 @@ The EazeFi platform leverages Soroban smart contracts and the Stellar Decentrali
 
 For more details on the smart contracts, see the [contracts README](/contracts/README.md).
 
+## Stellar Ecosystem Proposals (SEPs)
+
+EazeFi implements several Stellar Ecosystem Proposals (SEPs) to ensure interoperability with the broader Stellar ecosystem. SEPs are standardized protocols that enable different applications and services to work together seamlessly.
+
+### SEP-24: Interactive Deposit and Withdrawal
+
+Our primary implementation is SEP-24, which provides a standard API for deposit and withdrawal operations with interactive user flows. This enables:
+
+- **Seamless Deposits**: Users can deposit funds from external sources (like mobile money or bank accounts) into their Stellar wallets
+- **Easy Withdrawals**: Users can withdraw funds from their Stellar wallets to external destinations
+- **Interactive Flows**: When additional information is needed, users are guided through an interactive process
+- **Status Tracking**: Users can track the status of their deposit or withdrawal operations
+
+#### SEP-24 Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/sep24/info` | Returns information about what currencies are supported for deposit/withdrawal |
+| `/sep24/fee` | Returns the fee that would be charged for a deposit/withdrawal |
+| `/sep24/transactions` | Returns a list of transactions created by the user |
+| `/sep24/transaction` | Returns information about a specific transaction |
+
+### Future SEP Implementations
+
+We plan to implement additional SEPs in the future:
+
+- **SEP-6**: Non-interactive deposit and withdrawal API
+- **SEP-10**: Stellar Web Authentication for secure authentication
+- **SEP-12**: KYC API for standardized KYC information exchange
+- **SEP-31**: Cross-Border Payments API for financial institution transfers
+
+### Integration with Smart Contracts
+
+Our SEP implementations work in conjunction with our Soroban smart contracts:
+
+- The SEP-24 API interacts with the Remittance Contract for processing cross-border transfers
+- The Token Wrapper Contract handles the tokenized assets that users deposit and withdraw
+- The Family Pool Contract enables collaborative remittances that can be funded through SEP-24 deposits
+
+For more information about Stellar Ecosystem Proposals, visit the [Stellar GitHub repository](https://github.com/stellar/stellar-protocol/tree/master/ecosystem).
+
 ## Security
 
 EazeFi implements multiple layers of security to protect user funds and data:
