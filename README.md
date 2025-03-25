@@ -31,6 +31,7 @@ EazeFi bridges the gap between traditional remittance services and modern blockc
 - **Smart Contract Security**: Remittances secured by Soroban smart contracts
 - **Family Pools**: Collaborative remittance pools for family members to contribute together
 - **Transaction History**: Detailed history of all remittances with status tracking
+- **SEP-31 Compliance**: Full implementation of Stellar Ecosystem Proposal 31 for standardized cross-border payments
 
 ### Financial Features
 - **Real-time Exchange Rates**: Up-to-date market rates for all supported currencies
@@ -295,6 +296,16 @@ EazeFi/
 | `POST` | `/api/remittances/redeem` | Redeem remittance | `{ id, destination }` | Transaction data |
 | `GET` | `/api/remittances/stats` | Get remittance statistics | None | Statistics data |
 
+#### SEP-31 (Cross-Border Payments API)
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|--------------|----------|
+| `GET` | `/sep31/info` | Get supported currencies and fields | None | Currency information |
+| `POST` | `/sep31/transactions` | Create a new cross-border payment | `{ amount, asset_code, sender_id, receiver_id, fields }` | Transaction data |
+| `GET` | `/sep31/transactions/:id` | Get transaction details | None | Transaction data |
+| `PATCH` | `/sep31/transactions/:id` | Update transaction information | `{ status, fields }` | Success message |
+| `POST` | `/sep31/transactions/:id/process` | Process transaction with Soroban | None | Remittance ID and status |
+| `POST` | `/sep31/transactions/:id/complete` | Complete transaction | `{ redeemMethod, accountNumber }` | Success message |
+
 #### Family Pool
 | Method | Endpoint | Description | Request Body | Response |
 |--------|----------|-------------|--------------|----------|
@@ -361,23 +372,21 @@ The EazeFi platform leverages Soroban smart contracts and the Stellar Decentrali
 
 - **Remittance Contract**: 
   - Manages the sending and receiving of remittances
-  - Implements secure redemption codes
-  - Provides status tracking and notifications
-  - Handles escrow and time-locked transactions
-  - Supports micro-insurance for remittance delays
+  - Provides status tracking (Pending, Completed, Cancelled)
+  - Handles secure transaction processing
+  - Deployed on Stellar Testnet: [CDRZTAFZ5U2CJ3ICR23U2RT46I5FVPKEG3ZSA233RHISFH4QKUK2RL3A](https://stellar.expert/explorer/testnet/contract/CDRZTAFZ5U2CJ3ICR23U2RT46I5FVPKEG3ZSA233RHISFH4QKUK2RL3A)
+  - Fully integrated with M-Pesa for mobile money transfers in Tanzania
 
 - **Family Pool Contract**: 
   - Enables collaborative remittances through shared pools
-  - Implements customizable withdrawal limits and member roles
   - Provides transparent contribution tracking
-  - Supports voting mechanisms for fund allocation
-  - Handles automatic distribution based on predefined rules
+  - Deployed on Stellar Testnet: [CAA7DKVW5IO7OSPJ6ZJLMRUJRJ3PKMVXVT7I2AVGEEXPDGOUHZSP2ADN](https://stellar.expert/explorer/testnet/contract/CAA7DKVW5IO7OSPJ6ZJLMRUJRJ3PKMVXVT7I2AVGEEXPDGOUHZSP2ADN)
+  - Currently in early development stage
 
 - **Token Wrapper Contract**: 
   - Manages different tokens and currencies
   - Handles exchange rates and conversions
-  - Implements token minting and burning
-  - Provides asset verification and validation
+  - Deployed on Stellar Testnet: [CDXEBQDKPLAAVMEYT7KSDYARPPFG4TPE5ALPYRYH4WEK2HC5QP76BUAO](https://stellar.expert/explorer/testnet/contract/CDXEBQDKPLAAVMEYT7KSDYARPPFG4TPE5ALPYRYH4WEK2HC5QP76BUAO)
   - Supports token swapping with minimal slippage
 
 ### SDEX Integration
@@ -388,7 +397,7 @@ The EazeFi platform leverages Soroban smart contracts and the Stellar Decentrali
 - **Liquidity Aggregation**: Combining liquidity from multiple sources
 - **Path Payments**: Executing multi-hop transactions for exotic currency pairs
 
-For more details on the smart contracts, see the [contracts README](/contracts/README.md).
+For more details on the smart contracts, see the [contracts README](/contracts/README.md). All contracts have been successfully deployed to the Stellar Testnet and can be viewed on [Stellar Expert](https://stellar.expert/explorer/testnet).
 
 ## Stellar Ecosystem Proposals (SEPs)
 
@@ -425,9 +434,9 @@ We plan to implement additional SEPs in the future:
 
 Our SEP implementations work in conjunction with our Soroban smart contracts:
 
-- The SEP-24 API interacts with the Remittance Contract for processing cross-border transfers
-- The Token Wrapper Contract handles the tokenized assets that users deposit and withdraw
-- The Family Pool Contract enables collaborative remittances that can be funded through SEP-24 deposits
+- The SEP-24 API interacts with the Remittance Contract (ID: CDRZTAFZ5U2CJ3ICR23U2RT46I5FVPKEG3ZSA233RHISFH4QKUK2RL3A) for processing cross-border transfers
+- The Token Wrapper Contract (ID: CDXEBQDKPLAAVMEYT7KSDYARPPFG4TPE5ALPYRYH4WEK2HC5QP76BUAO) handles the tokenized assets that users deposit and withdraw
+- The Family Pool Contract (ID: CAA7DKVW5IO7OSPJ6ZJLMRUJRJ3PKMVXVT7I2AVGEEXPDGOUHZSP2ADN) enables collaborative remittances that can be funded through SEP-24 deposits
 
 For more information about Stellar Ecosystem Proposals, visit the [Stellar GitHub repository](https://github.com/stellar/stellar-protocol/tree/master/ecosystem).
 
