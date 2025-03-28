@@ -12,6 +12,7 @@ const SwapPage = () => {
   const { wallet, loading: walletLoading } = useContext(WalletContext);
   const [selectedPair, setSelectedPair] = useState(null);
   const [pairs, setPairs] = useState([]);
+  // Ensure pairs is always an array
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,7 +25,8 @@ const SwapPage = () => {
     try {
       setLoading(true);
       const res = await axios.get('/api/sdex/pairs');
-      setPairs(res.data);
+      // Ensure we're setting an array, even if the API returns null or undefined
+      setPairs(Array.isArray(res.data) ? res.data : []);
       if (res.data.length > 0) {
         setSelectedPair(res.data[0]);
       }
@@ -115,7 +117,7 @@ const SwapPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {pairs.map((pair, index) => (
+              {Array.isArray(pairs) && pairs.length > 0 ? pairs.map((pair, index) => (
                 <tr key={index}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
@@ -137,7 +139,13 @@ const SwapPage = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                    No trading pairs available. Please check back later.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
