@@ -148,7 +148,7 @@ const Dashboard = () => {
         </Link>
 
         <Link
-          to="/family-pool"
+          to="/family-pools"
           className="bg-white hover:bg-gray-50 rounded-xl shadow-sm p-5 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-md border border-gray-100 hover:border-black group"
         >
           <div className="w-14 h-14 bg-black rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">

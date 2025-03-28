@@ -17,7 +17,7 @@ const Landing = () => {
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-400">ANYWHERE</span>
               </h1>
               <p className="text-xl md:text-2xl mb-10 text-gray-300">
-                Send money anywhere, travel back home with Eaze.
+                Send money anywhere, travel back home with <span className="text-green-400 font-bold">Eaze</span>.
               </p>
               <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
                 <Link
@@ -132,9 +132,31 @@ const Landing = () => {
               <div className="text-black mb-4">
                 <FaMobileAlt className="text-4xl" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Mobile Money Integration</h3>
+              <h3 className="text-xl font-bold mb-2">M-Pesa Direct Integration</h3>
               <p className="text-gray-600">
-                Seamlessly connect with local mobile money providers for easy cash-in and cash-out.
+                Send money directly to M-Pesa accounts in Tanzania, Kenya, and other supported countries from anywhere in the world.
+              </p>
+            </div>
+            
+            {/* Feature 7 */}
+            <div className="bg-gray-50 p-8 rounded-xl border border-gray-200 hover:border-black transition duration-300">
+              <div className="text-black mb-4">
+                <FaShieldAlt className="text-4xl" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Micro Insurance</h3>
+              <p className="text-gray-600">
+                Protect your cross-border transactions with affordable micro-insurance coverage against delays and other risks.
+              </p>
+            </div>
+            
+            {/* Feature 8 */}
+            <div className="bg-gray-50 p-8 rounded-xl border border-gray-200 hover:border-black transition duration-300">
+              <div className="text-black mb-4">
+                <FaGlobeAfrica className="text-4xl" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Multi-Currency Support</h3>
+              <p className="text-gray-600">
+                Send and receive in multiple currencies with competitive exchange rates powered by Stellar's decentralized exchange.
               </p>
             </div>
           </div>
