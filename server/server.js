@@ -23,7 +23,9 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/wallets', require('./routes/wallets'));
 app.use('/api/remittances', require('./routes/remittances'));
 app.use('/api/sdex', require('./routes/sdex'));
+app.use('/api/mpesa', require('./routes/mpesaRemittance')); // Add M-Pesa routes
 app.use('/sep24', require('./routes/sep/sep24'));
+app.use('/sep31', require('./routes/sep/sep31'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
@@ -35,6 +37,11 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-const PORT = process.env.PORT || 5000;
+// For traditional hosting environments
+if (process.env.NODE_ENV !== 'vercel') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+}
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+// Export the Express API for Vercel serverless deployment
+module.exports = app;
