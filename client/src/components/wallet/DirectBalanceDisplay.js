@@ -33,7 +33,14 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
       }
     } catch (error) {
       console.error('Error fetching direct balance:', error);
-      setError('Failed to fetch balance');
+      
+      // Handle 404 errors specifically (account not found)
+      if (error.response && error.response.status === 404) {
+        console.log('Account not found on Stellar network. Wallet may need funding.');
+        setError('Account not found. Try funding your wallet first.');
+      } else {
+        setError('Failed to fetch balance');
+      }
     } finally {
       setLoading(false);
     }

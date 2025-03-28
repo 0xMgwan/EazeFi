@@ -27,6 +27,12 @@ const TopBalanceDisplay = ({ walletAddress }) => {
       }
     } catch (error) {
       console.error('Error fetching balance for main display:', error);
+      
+      // Handle 404 errors specifically (account not found)
+      if (error.response && error.response.status === 404) {
+        console.log('Account not found on Stellar network. Wallet may need funding.');
+      }
+      
       setBalance('0.00');
     } finally {
       setLoading(false);
