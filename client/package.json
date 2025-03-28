@@ -39,7 +39,7 @@
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
-    "vercel-build": "craco build"
+    "vercel-build": "node vercel-build.js"
   },
   "eslintConfig": {
     "extends": [
