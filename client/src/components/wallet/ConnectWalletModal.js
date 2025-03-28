@@ -19,7 +19,7 @@ if (typeof window !== 'undefined' && !window.freighter) {
   }
 }
 
-const ConnectWalletModal = ({ isOpen, onClose }) => {
+const ConnectWalletModal = ({ onClose, onConnect }) => {
   const navigate = useNavigate();
   const { setWallet } = useContext(WalletContext);
   const [connecting, setConnecting] = useState(false);
@@ -41,14 +41,13 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
   
   // Reset state when modal opens and check for wallet extensions
   useEffect(() => {
-    if (isOpen) {
-      setConnecting(false);
-      setSelectedWallet(null);
-      setError(null);
-      setSuccess(false);
-      
-      // Check for wallet extensions
-      const checkWalletExtensions = async () => {
+    setConnecting(false);
+    setSelectedWallet(null);
+    setError(null);
+    setSuccess(false);
+    
+    // Check for wallet extensions
+    const checkWalletExtensions = async () => {
         try {
           // Create a more reliable detection mechanism
           const detectWallets = async () => {
@@ -112,10 +111,9 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
           console.error('Error checking for wallet extensions:', err);
         }
       };
-      
-      checkWalletExtensions();
-    }
-  }, [isOpen]);
+    
+    checkWalletExtensions();
+  }, []);
   
   // Helper function to create a mock wallet for development testing
   const createMockWallet = (walletName) => {
@@ -130,8 +128,25 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
       createdAt: new Date().toISOString()
     };
   };
+  
+  // Helper function to handle post-connection actions
+  const handleSuccessfulConnection = (walletData) => {
+    // Set success state
+    setSuccess(true);
+    setConnecting(false);
+    
+    // Call the onConnect callback with the wallet data
+    if (onConnect && typeof onConnect === 'function') {
+      onConnect(walletData);
+    }
+    
+    // Close modal after a short delay
+    setTimeout(() => {
+      onClose();
+    }, 1000);
+  };
 
-  if (!isOpen) return null;
+  // Modal is always open when rendered
 
   const wallets = [
     {
@@ -184,6 +199,9 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
         if (setWallet) {
           setWallet(walletData);
         }
+        
+        // Handle successful connection
+        handleSuccessfulConnection(walletData);
         
         return { success: true, publicKey: walletData.address, walletData, isMock: true };
       }
@@ -357,6 +375,9 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
           setWallet(walletData);
         }
         
+        // Handle successful connection
+        handleSuccessfulConnection(walletData);
+        
         return { success: true, publicKey: walletData.address, walletData, isMock: true };
       }
       
@@ -465,6 +486,9 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
           setWallet(walletData);
         }
         
+        // Handle successful connection
+        handleSuccessfulConnection(walletData);
+        
         return { success: true, publicKey: walletData.address, walletData, isMock: true };
       }
       
@@ -520,6 +544,9 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
         if (setWallet) {
           setWallet(walletData);
         }
+        
+        // Handle successful connection
+        handleSuccessfulConnection(walletData);
         
         return { success: true, publicKey: walletData.address, walletData, isMock: true };
       }
@@ -628,8 +655,14 @@ const ConnectWalletModal = ({ isOpen, onClose }) => {
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h2 className="text-2xl font-bold text-black">Connect Wallet</h2>
           <button 
-            onClick={onClose}
+            onClick={() => {
+              console.log('Close button clicked');
+              if (typeof onClose === 'function') {
+                onClose();
+              }
+            }}
             className="text-gray-400 hover:text-black transition duration-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100"
+            aria-label="Close modal"
           >
             <FaTimes className="text-xl" />
           </button>

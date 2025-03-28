@@ -10,9 +10,9 @@ import ConnectWalletModal from '../wallet/ConnectWalletModal';
 
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useContext(AuthContext);
-  // Fix: Properly import from WalletContext
+  // Properly import from WalletContext
   const walletContext = useContext(WalletContext);
-  const { wallet } = walletContext || {};
+  const { wallet, setWallet } = walletContext || {};
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -63,6 +63,9 @@ const Navbar = () => {
     setIsMenuOpen(false);
     
     console.log('Wallet disconnected');
+    
+    // Show feedback to user
+    alert('Wallet disconnected successfully');
   };
   
   const handleHover = (item) => {
@@ -245,16 +248,32 @@ const Navbar = () => {
             </Link>
           </li>
           <li className="py-2 md:py-0 md:ml-3">
-            <button
-              className="flex items-center bg-gradient-to-r from-neon-blue/80 to-neon-purple/80 text-white px-5 py-2.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
-              onClick={() => setIsWalletModalOpen(true)}
-              onMouseEnter={() => handleHover('wallet')}
-              onMouseLeave={handleHoverExit}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 animate-pulse-slow opacity-30"></div>
-              <FaLink className="mr-2 group-hover:animate-pulse" /> 
-              <span>Connect Wallet</span>
-            </button>
+            {wallet ? (
+              <button
+                className="flex items-center bg-gradient-to-r from-green-500/80 to-emerald-600/80 text-white px-5 py-2.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
+                onClick={() => setIsWalletModalOpen(true)}
+                onMouseEnter={() => handleHover('wallet')}
+                onMouseLeave={handleHoverExit}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-600/20 animate-pulse-slow opacity-30"></div>
+                <div className="flex items-center">
+                  <span className="inline-block h-2 w-2 rounded-full bg-green-500 mr-1 animate-pulse"></span>
+                  <FaWallet className="mr-2 group-hover:animate-pulse" />
+                  <span>{wallet.address ? `${wallet.address.substring(0, 4)}...${wallet.address.substring(wallet.address.length - 4)}` : 'Wallet Connected'}</span>
+                </div>
+              </button>
+            ) : (
+              <button
+                className="flex items-center bg-gradient-to-r from-neon-blue/80 to-neon-purple/80 text-white px-5 py-2.5 rounded-xl hover:shadow-glow-lg transition-all duration-300 font-medium relative overflow-hidden group"
+                onClick={() => setIsWalletModalOpen(true)}
+                onMouseEnter={() => handleHover('wallet')}
+                onMouseLeave={handleHoverExit}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/20 to-neon-purple/20 animate-pulse-slow opacity-30"></div>
+                <FaLink className="mr-2 group-hover:animate-pulse" /> 
+                <span>Connect Wallet</span>
+              </button>
+            )}
           </li>
         </Fragment>
       )}
@@ -348,10 +367,17 @@ const Navbar = () => {
 
   return (
     <>
-      <ConnectWalletModal 
-        isOpen={isWalletModalOpen} 
-        onClose={() => setIsWalletModalOpen(false)} 
-      />
+      {isWalletModalOpen && (
+        <ConnectWalletModal 
+          onClose={() => setIsWalletModalOpen(false)}
+          onConnect={(walletData) => {
+            if (setWallet) {
+              setWallet(walletData);
+            }
+            setIsWalletModalOpen(false);
+          }}
+        />
+      )}
       <nav className={`sticky top-0 z-50 transition-all duration-500 ${scrolled 
         ? 'bg-dark-surface/80 backdrop-blur-lg shadow-glow-sm border-b border-neon-blue/10' 
         : 'bg-transparent'}`}>
