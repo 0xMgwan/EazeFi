@@ -310,15 +310,18 @@ const Wallet = () => {
       </div>
 
       {/* Connect Wallet Modal */}
-      {connectWalletModal && (
-        <ConnectWalletModal 
-          onClose={() => setConnectWalletModal(false)}
-          onConnect={(walletData) => {
-            setWallet(walletData);
-            setConnectWalletModal(false);
-          }}
-        />
-      )}
+      <ConnectWalletModal 
+        isOpen={connectWalletModal}
+        onClose={() => {
+          console.log('Closing wallet modal from Wallet component');
+          setConnectWalletModal(false);
+        }}
+        onConnect={(walletData) => {
+          console.log('Wallet connected from Wallet component', walletData);
+          setWallet(walletData);
+          setConnectWalletModal(false);
+        }}
+      />
     </div>
   );
 };

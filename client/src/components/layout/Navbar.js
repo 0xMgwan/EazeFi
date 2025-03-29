@@ -367,17 +367,17 @@ const Navbar = () => {
 
   return (
     <>
-      {isWalletModalOpen && (
-        <ConnectWalletModal 
-          onClose={() => setIsWalletModalOpen(false)}
-          onConnect={(walletData) => {
-            if (setWallet) {
-              setWallet(walletData);
-            }
-            setIsWalletModalOpen(false);
-          }}
-        />
-      )}
+      <ConnectWalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={() => {
+          console.log('Closing wallet modal from Navbar');
+          setIsWalletModalOpen(false);
+        }} 
+        onConnect={(wallet) => {
+          console.log('Wallet connected from Navbar', wallet);
+          setIsWalletModalOpen(false);
+        }}
+      />
       <nav className={`sticky top-0 z-50 transition-all duration-500 ${scrolled 
         ? 'bg-dark-surface/80 backdrop-blur-lg shadow-glow-sm border-b border-neon-blue/10' 
         : 'bg-transparent'}`}>

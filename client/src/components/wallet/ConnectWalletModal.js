@@ -19,7 +19,7 @@ if (typeof window !== 'undefined' && !window.freighter) {
   }
 }
 
-const ConnectWalletModal = ({ onClose, onConnect }) => {
+const ConnectWalletModal = ({ isOpen, onClose, onConnect }) => {
   const navigate = useNavigate();
   const { setWallet } = useContext(WalletContext);
   const [connecting, setConnecting] = useState(false);
@@ -649,14 +649,21 @@ const ConnectWalletModal = ({ onClose, onConnect }) => {
     }
   };
 
+  // If the modal is not open, don't render anything
+  if (isOpen === false) return null;
+  
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-gray-100">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h2 className="text-2xl font-bold text-black">Connect Wallet</h2>
           <button 
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
               console.log('Close button clicked');
+              
+              // Direct call to onClose function
               if (typeof onClose === 'function') {
                 onClose();
               }
