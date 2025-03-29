@@ -104,10 +104,13 @@ exports.sendCryptoToMpesa = async (req, res) => {
 
     await remittance.save();
 
-    // Execute the Stellar transaction to move funds from user's wallet to platform wallet
+    // Execute the transaction using the Soroban token contract
     try {
       // Get the platform wallet for receiving the crypto
       const platformWalletPublicKey = process.env.PLATFORM_WALLET_PUBLIC_KEY;
+      if (!platformWalletPublicKey) {
+        return res.status(500).json({ msg: 'Platform wallet public key not configured' });
+      }
       
       // Determine asset details
       let assetCode = sourceCurrency;
@@ -117,29 +120,74 @@ exports.sendCryptoToMpesa = async (req, res) => {
       if (assetCode !== 'XLM') {
         // Get the issuer from environment variables or config
         if (assetCode === 'USDC') {
-          assetIssuer = process.env.USDC_ISSUER;
+          assetIssuer = process.env.USDC_ISSUER || 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'; // Default testnet USDC issuer
         } else {
           return res.status(400).json({ msg: 'Unsupported asset type' });
         }
       }
       
-      // Send payment on Stellar network
-      const stellarResult = await stellarUtils.sendPayment(
-        wallet.stellarSecret,
-        platformWalletPublicKey,
-        amount,
-        assetCode,
-        assetIssuer
+      // Import the Soroban utilities
+      const sorobanUtils = require('../utils/soroban');
+      
+      // Get the Remittance contract ID from environment variables
+      const remittanceContractId = process.env.REMITTANCE_CONTRACT_ID;
+      if (!remittanceContractId) {
+        return res.status(500).json({ msg: 'Remittance contract ID not configured' });
+      }
+      
+      console.log(`Using Remittance contract ID: ${remittanceContractId}`);
+      
+      // Generate a random redemption code for the remittance
+      const redemptionCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      
+      // Check token balance before proceeding
+      try {
+        const balance = await sorobanUtils.getTokenBalance(
+          tokenContractId,
+          wallet.stellarAddress,
+          wallet.stellarSecret
+        );
+        
+        console.log(`Current token balance: ${balance}`);
+        
+        if (parseFloat(balance) < parseFloat(amount)) {
+          return res.status(400).json({ msg: 'Insufficient token balance' });
+        }
+      } catch (err) {
+        console.error('Error checking token balance:', err);
+        // Continue anyway as this might fail for various reasons
+      }
+      
+      // Prepare parameters for the token transfer
+      const sorobanParams = {
+        sender: wallet.stellarAddress,
+        recipientPhone: formattedPhone,
+        recipientName: recipientName,
+        recipientCountry: 'Tanzania',
+        amount: amount.toString(),
+        sourceCurrency: assetCode,
+        targetCurrency: 'TZS',
+        includeInsurance: !!includeInsurance,
+        redemptionCode: redemptionCode,
+        notes: notes || 'EazeFi M-Pesa Remittance'
+      };
+      
+      // Call the Remittance contract to create a new remittance
+      const remittanceId = await sorobanUtils.createRemittance(
+        remittanceContractId,
+        sorobanParams,
+        wallet.stellarSecret
       );
       
-      // Update transaction with Stellar transaction details
-      transaction.contractTransactionId = stellarResult.hash;
+      // Update transaction with contract details
+      transaction.contractTransactionId = remittanceId;
       transaction.status = 'processing';
       await transaction.save();
       
       // Update remittance status
       remittance.status = 'processing';
-      remittance.stellarTransactionId = stellarResult.hash;
+      remittance.contractRemittanceId = remittanceId;
+      remittance.redemptionCode = redemptionCode;
       await remittance.save();
       
       // Initiate M-Pesa payment
@@ -169,8 +217,9 @@ exports.sendCryptoToMpesa = async (req, res) => {
           success: true,
           remittance,
           transaction,
-          stellarTransactionId: stellarResult.hash,
-          mpesaTransactionId: mpesaResult.transactionId
+          contractRemittanceId: remittance.contractRemittanceId,
+          mpesaTransactionId: mpesaResult.transactionId,
+          redemptionCode: remittance.redemptionCode
         });
       } else {
         // M-Pesa transaction failed
