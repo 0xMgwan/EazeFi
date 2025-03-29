@@ -22,6 +22,13 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordErrors, setPasswordErrors] = useState({});
 
   useEffect(() => {
     if (user) {
@@ -48,6 +55,18 @@ const Profile = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user starts typing
+    if (passwordErrors[name]) {
+      setPasswordErrors({ ...passwordErrors, [name]: '' });
+    }
   };
 
   const handleNotificationChange = (e) => {
@@ -426,7 +445,7 @@ const Profile = () => {
               <button
                 type="button"
                 className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition duration-200"
-                onClick={() => {/* Handle password change */}}
+                onClick={() => setShowPasswordModal(true)}
               >
                 Change Password
               </button>
@@ -465,6 +484,194 @@ const Profile = () => {
           )}
         </form>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">Change Password</h2>
+                <button 
+                  type="button" 
+                  className="text-gray-400 hover:text-gray-500"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordData({
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmPassword: ''
+                    });
+                    setPasswordErrors({});
+                  }}
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {message && message.type === 'password' && (
+                <div className={`mb-4 p-3 rounded-lg ${message.status === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                  {message.text}
+                </div>
+              )}
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                
+                // Validate password form
+                const errors = {};
+                if (!passwordData.currentPassword) {
+                  errors.currentPassword = 'Current password is required';
+                }
+                
+                if (!passwordData.newPassword) {
+                  errors.newPassword = 'New password is required';
+                } else if (passwordData.newPassword.length < 8) {
+                  errors.newPassword = 'Password must be at least 8 characters';
+                } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(passwordData.newPassword)) {
+                  errors.newPassword = 'Password must include uppercase, lowercase, number and special character';
+                }
+                
+                if (passwordData.newPassword !== passwordData.confirmPassword) {
+                  errors.confirmPassword = 'Passwords do not match';
+                }
+                
+                setPasswordErrors(errors);
+                
+                if (Object.keys(errors).length === 0) {
+                  setIsSubmitting(true);
+                  
+                  try {
+                    // In a real app, you would call an API endpoint to change the password
+                    // For demo purposes, we'll simulate a successful password change
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    setMessage({
+                      type: 'password',
+                      status: 'success',
+                      text: 'Password changed successfully!'
+                    });
+                    
+                    // Reset form after successful submission
+                    setTimeout(() => {
+                      setShowPasswordModal(false);
+                      setPasswordData({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                      });
+                      setPasswordErrors({});
+                      setMessage(null);
+                    }, 2000);
+                  } catch (err) {
+                    setMessage({
+                      type: 'password',
+                      status: 'error',
+                      text: err.message || 'Failed to change password. Please try again.'
+                    });
+                  } finally {
+                    setIsSubmitting(false);
+                  }
+                }
+              }}>
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="currentPassword">
+                    Current Password
+                  </label>
+                  <input
+                    className={`shadow appearance-none border ${passwordErrors.currentPassword ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+                    id="currentPassword"
+                    name="currentPassword"
+                    type="password"
+                    placeholder="Enter your current password"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
+                  />
+                  {passwordErrors.currentPassword && (
+                    <p className="text-red-500 text-xs italic mt-1">{passwordErrors.currentPassword}</p>
+                  )}
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="newPassword">
+                    New Password
+                  </label>
+                  <input
+                    className={`shadow appearance-none border ${passwordErrors.newPassword ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    placeholder="Enter your new password"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                  />
+                  {passwordErrors.newPassword && (
+                    <p className="text-red-500 text-xs italic mt-1">{passwordErrors.newPassword}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Password must be at least 8 characters and include uppercase, lowercase, number and special character.
+                  </p>
+                </div>
+                
+                <div className="mb-6">
+                  <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
+                    Confirm New Password
+                  </label>
+                  <input
+                    className={`shadow appearance-none border ${passwordErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your new password"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                  />
+                  {passwordErrors.confirmPassword && (
+                    <p className="text-red-500 text-xs italic mt-1">{passwordErrors.confirmPassword}</p>
+                  )}
+                </div>
+                
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg mr-2"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordData({
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                      });
+                      setPasswordErrors({});
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Saving...
+                      </span>
+                    ) : (
+                      'Change Password'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -17,6 +17,7 @@ const Register = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   const { name, email, password, password2, phone, country, nationalId } = formData;
 
@@ -32,6 +33,24 @@ const Register = () => {
     if (formErrors[e.target.name]) {
       setFormErrors({ ...formErrors, [e.target.name]: '' });
     }
+    
+    // Calculate password strength if password field is being updated
+    if (e.target.name === 'password') {
+      calculatePasswordStrength(e.target.value);
+    }
+  };
+  
+  // Function to calculate password strength
+  const calculatePasswordStrength = (password) => {
+    let strength = 0;
+    
+    if (password.length >= 8) strength += 1;
+    if (/[A-Z]/.test(password)) strength += 1;
+    if (/[a-z]/.test(password)) strength += 1;
+    if (/[0-9]/.test(password)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+    
+    setPasswordStrength(strength);
   };
 
   const validateForm = () => {
@@ -49,8 +68,10 @@ const Register = () => {
     
     if (!password) {
       errors.password = 'Password is required';
-    } else if (password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(password)) {
+      errors.password = 'Password must include uppercase, lowercase, number and special character';
     }
     
     if (password !== password2) {
@@ -161,6 +182,36 @@ const Register = () => {
                 onChange={onChange}
               />
               {formErrors.password && <p className="text-red-500 text-xs italic mt-1">{formErrors.password}</p>}
+              
+              {/* Password strength indicator */}
+              {password && (
+                <div className="mt-2">
+                  <div className="flex mb-1">
+                    <div className={`h-2 rounded-full flex-1 mr-1 ${passwordStrength >= 1 ? 'bg-red-500' : 'bg-gray-200'}`}></div>
+                    <div className={`h-2 rounded-full flex-1 mr-1 ${passwordStrength >= 2 ? 'bg-orange-500' : 'bg-gray-200'}`}></div>
+                    <div className={`h-2 rounded-full flex-1 mr-1 ${passwordStrength >= 3 ? 'bg-yellow-500' : 'bg-gray-200'}`}></div>
+                    <div className={`h-2 rounded-full flex-1 mr-1 ${passwordStrength >= 4 ? 'bg-blue-500' : 'bg-gray-200'}`}></div>
+                    <div className={`h-2 rounded-full flex-1 ${passwordStrength >= 5 ? 'bg-green-500' : 'bg-gray-200'}`}></div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Password strength: {' '}
+                    {passwordStrength === 0 && <span className="text-gray-500">Very weak</span>}
+                    {passwordStrength === 1 && <span className="text-red-500">Weak</span>}
+                    {passwordStrength === 2 && <span className="text-orange-500">Fair</span>}
+                    {passwordStrength === 3 && <span className="text-yellow-500">Good</span>}
+                    {passwordStrength === 4 && <span className="text-blue-500">Strong</span>}
+                    {passwordStrength === 5 && <span className="text-green-500">Very strong</span>}
+                  </p>
+                </div>
+              )}
+              
+              <ul className="text-xs text-gray-500 mt-2 list-disc pl-5">
+                <li className={password.length >= 8 ? 'text-green-500' : ''}>At least 8 characters</li>
+                <li className={/[A-Z]/.test(password) ? 'text-green-500' : ''}>At least one uppercase letter</li>
+                <li className={/[a-z]/.test(password) ? 'text-green-500' : ''}>At least one lowercase letter</li>
+                <li className={/[0-9]/.test(password) ? 'text-green-500' : ''}>At least one number</li>
+                <li className={/[^A-Za-z0-9]/.test(password) ? 'text-green-500' : ''}>At least one special character</li>
+              </ul>
             </div>
             
             <div className="mb-4">
