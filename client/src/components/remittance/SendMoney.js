@@ -34,8 +34,8 @@ const SendMoney = () => {
   const [redemptionCode, setRedemptionCode] = useState('');
   const [formErrors, setFormErrors] = useState({});
   
-  // For testnet demo
-  const [isTestnetDemo, setIsTestnetDemo] = useState(false);
+  // For testnet demo - now default mode
+  const [isTestnetDemo, setIsTestnetDemo] = useState(true);
   const [recipientAddress, setRecipientAddress] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [recipientDemoName, setRecipientDemoName] = useState('');
@@ -78,11 +78,14 @@ const SendMoney = () => {
     getBalance();
     
     // Generate a random recipient address for testnet demo
-    if (isTestnetDemo) {
-      const keypair = StellarSdk.Keypair.random();
-      setRecipientAddress(keypair.publicKey());
-    }
-  }, [isTestnetDemo]);
+    const keypair = StellarSdk.Keypair.random();
+    setRecipientAddress(keypair.publicKey());
+    
+    // Set default recipient information
+    setRecipientDemoName('Mary Mwanjelwa');
+    setRecipientDemoCountry('Tanzania');
+    setRecipientPhone('0747630873');
+  }, []);
 
   useEffect(() => {
     if (formAmount && sourceToken && targetToken) {
@@ -587,19 +590,17 @@ const SendMoney = () => {
           </div>
         </div>
         
-        {isTestnetDemo && (
-          <div className="bg-blue-50 p-4 rounded-lg mb-6">
-            <div className="flex items-start">
-              <FaInfoCircle className="text-blue-500 mt-1 mr-2" />
-              <div>
-                <p className="text-blue-800">
-                  <strong>Testnet Demo Mode:</strong> This demonstrates cross-border remittance using the Stellar testnet. 
-                  You'll send XLM from your wallet, and the recipient will receive TSHT (Tanzania Shilling Token).
-                </p>
-              </div>
+        <div className="bg-blue-50 p-4 rounded-lg mb-6">
+          <div className="flex items-start">
+            <FaInfoCircle className="text-blue-500 mt-1 mr-2" />
+            <div>
+              <p className="text-blue-800">
+                This demonstrates cross-border remittance using the Stellar testnet. 
+                You'll send XLM from your wallet, and the recipient will receive TSHT (Tanzania Shilling Token).
+              </p>
             </div>
           </div>
-        )}
+        </div>
         
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="mb-8">
@@ -637,7 +638,7 @@ const SendMoney = () => {
             {step === 1 && (
               <div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                  {isTestnetDemo ? 'Testnet Demo Details' : 'Recipient Information'}
+                  Recipient Information
                 </h2>
                 
                 {isTestnetDemo ? (
@@ -1140,16 +1141,38 @@ const SendMoney = () => {
                               This is a real transaction on the Stellar testnet using the EazeFi remittance contract.
                             </p>
                             {transactionHash && (
-                              <p className="mt-2 text-sm text-blue-700">
-                                <strong>Transaction Hash:</strong> <a 
+                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <h4 className="text-blue-700 font-medium">Transaction Details</h4>
+                                <div className="mt-2 flex items-center">
+                                  <span className="text-gray-600 mr-2">Transaction Hash:</span>
+                                  <a 
+                                    href={`https://stellar.expert/explorer/testnet/tx/${transactionHash}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 font-mono text-sm flex-1 truncate"
+                                  >
+                                    {transactionHash}
+                                  </a>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(transactionHash);
+                                      alert('Transaction hash copied to clipboard!');
+                                    }}
+                                    className="ml-2 p-1 bg-gray-100 hover:bg-gray-200 rounded"
+                                    title="Copy to clipboard"
+                                  >
+                                    <FaCopy size={14} />
+                                  </button>
+                                </div>
+                                <a 
                                   href={`https://stellar.expert/explorer/testnet/tx/${transactionHash}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer"
-                                  className="underline hover:text-blue-900"
+                                  className="mt-2 inline-block text-blue-600 hover:text-blue-800 text-sm"
                                 >
-                                  {transactionHash.substring(0, 10)}...{transactionHash.substring(transactionHash.length - 10)} <span>↗</span>
+                                  View on Stellar Explorer <span>↗</span>
                                 </a>
-                              </p>
+                              </div>
                             )}
                             <p className="mt-2 text-sm text-blue-700">
                               <strong>Note:</strong> To see the TSHT tokens in the recipient wallet, the recipient needs to add the TSHT token to their wallet by using the asset code "TSHT" and issuer "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5".
