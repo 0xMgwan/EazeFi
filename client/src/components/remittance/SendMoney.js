@@ -289,6 +289,11 @@ const SendMoney = () => {
   
   // Process testnet remittance using Soroban contract
   const processTestnetRemittance = async () => {
+    // Reset transaction state
+    setTransactionHash('');
+    setError(null);
+    setSuccess(false);
+    
     if (!wallet || !wallet.address) {
       setError('No wallet connected. Please connect your wallet first.');
       return false;
@@ -920,18 +925,7 @@ const SendMoney = () => {
                       </div>
                     )}
                     
-                    <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                      <div className="flex items-start">
-                        <FaInfoCircle className="text-blue-500 mt-1 mr-2" />
-                        <div>
-                          <p className="text-blue-800 text-sm">
-                            This is a demonstration of cross-border remittance using the Stellar testnet. 
-                            The transaction will send XLM from your wallet to a generated testnet address, 
-                            simulating the recipient receiving TSHT (Tanzania Shilling Token).
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+
                     
                     {error && (
                       <div className="bg-red-50 p-4 rounded-lg mb-6">
@@ -1121,40 +1115,7 @@ const SendMoney = () => {
                             <p className="mt-1 text-sm text-green-700">
                               This is a real transaction on the Stellar testnet using the EazeFi remittance contract.
                             </p>
-                            {transactionHash && (
-                              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                <h4 className="text-blue-700 font-medium">Transaction Details</h4>
-                                <div className="mt-2 flex items-center">
-                                  <span className="text-gray-600 mr-2">Transaction Hash:</span>
-                                  <a 
-                                    href={`https://stellar.expert/explorer/testnet/tx/${transactionHash}`} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 font-mono text-sm flex-1 truncate"
-                                  >
-                                    {transactionHash}
-                                  </a>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(transactionHash);
-                                      alert('Transaction hash copied to clipboard!');
-                                    }}
-                                    className="ml-2 p-1 bg-gray-100 hover:bg-gray-200 rounded"
-                                    title="Copy to clipboard"
-                                  >
-                                    <FaCopy size={14} />
-                                  </button>
-                                </div>
-                                <a 
-                                  href={`https://stellar.expert/explorer/testnet/tx/${transactionHash}`} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="mt-2 inline-block text-blue-600 hover:text-blue-800 text-sm"
-                                >
-                                  View on Stellar Explorer <span>↗</span>
-                                </a>
-                              </div>
-                            )}
+
                             <p className="mt-2 text-sm text-blue-700">
                               <strong>Note:</strong> To see the TSHT tokens in the recipient wallet, the recipient needs to add the TSHT token to their wallet by using the asset code "TSHT" and issuer "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5".
                             </p>
@@ -1164,32 +1125,35 @@ const SendMoney = () => {
                     )}
                     
                     {transactionHash && (
-                      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">Transaction Details</h3>
+                      <div className="bg-blue-100 border border-blue-300 rounded-lg p-4 mb-6">
+                        <h3 className="text-lg font-semibold text-blue-800 mb-2">Transaction Details</h3>
                         
                         <div className="mb-4">
-                          <h4 className="text-sm font-medium text-gray-500 mb-1">Transaction Hash</h4>
+                          <h4 className="text-sm font-medium text-blue-700 mb-1">Transaction Hash</h4>
                           <div className="flex items-center">
-                            <div className="bg-gray-50 p-3 rounded border border-gray-300 font-mono text-sm overflow-x-auto flex-1">
+                            <div className="bg-white p-3 rounded border border-blue-300 font-mono text-sm overflow-x-auto flex-1">
                               {transactionHash}
                             </div>
                             <button
                               type="button"
-                              onClick={() => copyToClipboard(transactionHash)}
-                              className="ml-2 bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded"
+                              onClick={() => {
+                                navigator.clipboard.writeText(transactionHash);
+                                alert('Transaction hash copied to clipboard!');
+                              }}
+                              className="ml-2 bg-blue-200 hover:bg-blue-300 text-blue-700 p-2 rounded"
                               title="Copy to clipboard"
                             >
                               <FaCopy />
                             </button>
                           </div>
-                          <div className="mt-2">
+                          <div className="mt-3">
                             <a 
                               href={`https://stellar.expert/explorer/testnet/tx/${transactionHash}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                              className="inline-block bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg text-sm flex items-center justify-center"
                             >
-                              View on Stellar Explorer <FaExchangeAlt className="ml-1" />
+                              View on Stellar Explorer <span className="ml-2">↗</span>
                             </a>
                           </div>
                         </div>
