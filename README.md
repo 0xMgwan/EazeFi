@@ -93,19 +93,19 @@ EazeFi employs a three-layer architecture:
 
 EazeFi utilizes three primary Soroban smart contracts:
 
-1. **Remittance Contract (ID: CDCYWK73YTYFJZZSJ5V7EDFNHYBG4QN3VUNG4DQHI72HPQYQTQKBVVKL)**
+1. **Remittance Contract (ID: CDRZTAFZ5U2CJ3ICR23U2RT46I5FVPKEG3ZSA233RHISFH4QKUK2RL3A)**
    - Handles the core remittance functionality
    - Manages escrow of funds during transactions
    - Implements time-locked redemptions
    - Tracks transaction status and history
 
-2. **Family Pool Contract**
+2. **Family Pool Contract (ID: CAA7DKVW5IO7OSPJ6ZJLMRUJRJ3PKMVXVT7I2AVGEEXPDGOUHZSP2ADN)**
    - Enables collaborative remittances
    - Manages multi-signature approvals
    - Implements contribution tracking
    - Handles distribution rules
 
-3. **Token Wrapper Contract**
+3. **Token Wrapper Contract (ID: CDXEBQDKPLAAVMEYT7KSDYARPPFG4TPE5ALPYRYH4WEK2HC5QP76BUAO)**
    - Manages tokenized local currencies (e.g., TSHT)
    - Handles exchange rate updates
    - Implements token minting and burning
