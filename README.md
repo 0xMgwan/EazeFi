@@ -1,12 +1,32 @@
 # EazeFi
 
-
-A Cross-border remmitance platform built on Stellar that enables anyone around the world to send tokenized mobile money instantly across borders, while also allowing recipients to use those same tokens for cross-border travel or trade. Tanzania serves as our initial implementation example with users receiving directly to theri M-pesa, however the platform is designed to work globally.
+A cross-border remittance platform built on Stellar that enables anyone around the world to send tokenized mobile money instantly across borders, while also allowing recipients to use those same tokens for cross-border travel or trade. Tanzania serves as our initial implementation example with users receiving funds directly to their M-Pesa accounts, however the platform is designed to work globally.
 
 [![GitHub license](https://img.shields.io/github/license/0xMgwan/EazeFi)](https://github.com/0xMgwan/EazeFi/blob/main/LICENSE)
 [![Stellar](https://img.shields.io/badge/Stellar-Testnet-brightgreen)](https://stellar.org)
 [![React](https://img.shields.io/badge/React-v18-blue)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-v16-green)](https://nodejs.org/)
+[![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-orange)](https://soroban.stellar.org/)
+
+## Project Overview and Problem Statement
+
+Cross-border remittances in Africa face significant challenges:
+
+- **High Fees**: Traditional remittance services charge 7-10% in fees
+- **Slow Processing**: Transfers can take 3-5 business days
+- **Limited Access**: Many rural areas lack banking infrastructure
+- **Currency Volatility**: Local currencies often experience significant fluctuations
+- **Lack of Interoperability**: Different mobile money systems don't easily connect across borders
+
+EazeFi addresses these challenges by leveraging Stellar's blockchain technology and Soroban smart contracts to create a seamless, low-cost remittance solution that:
+
+1. Reduces fees to under 1%
+2. Enables near-instant settlement
+3. Connects directly with popular mobile money platforms like M-Pesa
+4. Provides stable tokenized local currencies
+5. Creates interoperability between different payment systems
+
+Our initial focus is on Tanzania, where remittances are a vital economic lifeline but are hampered by inefficient systems and high costs.
 
 ## Vision
 
@@ -47,9 +67,53 @@ EazeFi bridges the gap between traditional remittance services and modern blockc
 - **Secure Key Management**: Best practices for handling private keys and sensitive information
 - **Testnet Development**: Built on Stellar Testnet for safe development and testing
 
-## Technical Stack
+## Technical Architecture and Implementation Details
 
-### Frontend
+### System Architecture
+
+EazeFi employs a three-layer architecture:
+
+1. **Client Layer**: React-based web application with wallet integration
+2. **Server Layer**: Node.js/Express backend for API handling and business logic
+3. **Blockchain Layer**: Stellar network with Soroban smart contracts
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Client Layer   │     │   Server Layer   │     │ Blockchain Layer│
+│                 │     │                 │     │                 │
+│  - React UI     │     │  - Node.js API  │     │  - Stellar      │
+│  - Wallet       │◄───►│  - Business     │◄───►│  - Soroban      │
+│    Integration  │     │    Logic        │     │    Contracts    │
+│  - State        │     │  - M-Pesa       │     │  - TSHT Token   │
+│    Management   │     │    Integration  │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+```
+
+### Smart Contract Architecture
+
+EazeFi utilizes three primary Soroban smart contracts:
+
+1. **Remittance Contract (ID: CDCYWK73YTYFJZZSJ5V7EDFNHYBG4QN3VUNG4DQHI72HPQYQTQKBVVKL)**
+   - Handles the core remittance functionality
+   - Manages escrow of funds during transactions
+   - Implements time-locked redemptions
+   - Tracks transaction status and history
+
+2. **Family Pool Contract**
+   - Enables collaborative remittances
+   - Manages multi-signature approvals
+   - Implements contribution tracking
+   - Handles distribution rules
+
+3. **Token Wrapper Contract**
+   - Manages tokenized local currencies (e.g., TSHT)
+   - Handles exchange rate updates
+   - Implements token minting and burning
+   - Manages token allowances
+
+### Technical Stack
+
+#### Frontend
 - **Framework**: React.js 18 with functional components and hooks
 - **State Management**: React Context API for global state (Auth, Wallet)
 - **Styling**: Tailwind CSS with custom components and responsive design
@@ -58,7 +122,7 @@ EazeFi bridges the gap between traditional remittance services and modern blockc
 - **UI Components**: Custom-built components with modern design principles
 - **API Communication**: Axios for HTTP requests
 
-### Backend
+#### Backend
 - **Server**: Node.js with Express.js
 - **Authentication**: JWT-based authentication system
 - **API Architecture**: RESTful API design
@@ -66,17 +130,17 @@ EazeFi bridges the gap between traditional remittance services and modern blockc
 - **Environment**: Environment variable management for different deployment scenarios
 - **Stellar Integration**: SEP (Stellar Ecosystem Proposal) implementations
 
-### Blockchain
+#### Blockchain
 - **Network**: Stellar Testnet (moving to Mainnet for production)
-- **Smart Contracts**: Soroban smart contracts for remittance and family pool management
+- **Smart Contracts**: Soroban smart contracts written in Rust
 - **Wallet Management**: Secure key storage and transaction signing
 - **Asset Handling**: Support for multiple Stellar assets and tokens
-- **DEX**: Stellar Decentralized Exchange (SDEX) for currency swaps with minimal slippage
+- **DEX**: Stellar Decentralized Exchange (SDEX) for currency swaps
 
-### External Integrations
+#### External Integrations
 - **Stellar SDK**: JavaScript Stellar SDK for blockchain interactions
 - **Soroban SDK**: For smart contract development and deployment
-- **Payment Processors**: Integration with M-Pesa and other mobile money platforms
+- **Payment Processors**: Integration with M-Pesa API for mobile money transactionsorms
 - **Banking APIs**: Connections to traditional banking systems
 - **Exchange Rate APIs**: Real-time currency conversion rates
 
@@ -461,6 +525,171 @@ EazeFi implements multiple layers of security to protect user funds and data:
 - **Input Validation**: All user inputs are validated to prevent injection attacks
 - **Rate Limiting**: Protection against brute force and DDoS attacks
 - **Regular Security Audits**: Ongoing security assessments and penetration testing
+
+## Justification for Technical Decisions and Approaches
+
+### Why Stellar and Soroban?
+
+We chose the Stellar blockchain and Soroban smart contracts for several key reasons:
+
+1. **Low Transaction Costs**: Stellar's minimal fees (0.00001 XLM per operation) make it ideal for remittances, especially for small amounts common in developing markets.
+
+2. **Fast Settlement**: Stellar's 3-5 second transaction finality enables near-instant remittances, compared to days with traditional services.
+
+3. **Built-in DEX**: Stellar's native decentralized exchange eliminates the need for third-party exchanges, reducing complexity and costs.
+
+4. **Multi-Asset Support**: Stellar's ability to handle custom assets made it perfect for creating tokenized local currencies like TSHT (Tanzania Shilling Token).
+
+5. **Soroban Smart Contracts**: Soroban provides a secure, efficient environment for our remittance logic with several advantages:
+   - Written in Rust for memory safety and performance
+   - Deterministic execution for predictable gas costs
+   - WebAssembly compilation for cross-platform compatibility
+   - Strong typing system to prevent common smart contract vulnerabilities
+
+### Why React and Node.js?
+
+1. **Component Reusability**: React's component-based architecture allows us to build a modular UI that scales efficiently.
+
+2. **JavaScript Ecosystem**: Using JavaScript across the stack (React frontend, Node.js backend, Stellar SDK) reduces context switching and enables code sharing.
+
+3. **Performance**: React's virtual DOM and efficient rendering make for a responsive user experience, critical for financial applications.
+
+4. **Developer Availability**: The widespread adoption of React and Node.js ensures a large talent pool for future development.
+
+### M-Pesa Integration Approach
+
+Our M-Pesa integration uses a direct API approach rather than intermediaries, which provides several benefits:
+
+1. **Reduced Fees**: Direct integration eliminates middleman costs.
+
+2. **Faster Processing**: Removing additional hops in the transaction flow speeds up the process.
+
+3. **Better Error Handling**: Direct integration allows for more granular error handling and recovery.
+
+4. **Enhanced Security**: Fewer parties involved means fewer potential security vulnerabilities.
+
+## Team's Experience with Development on Stellar
+
+EazeFi represents our team's first major project built on the Stellar blockchain. Based in Tanzania, our team is actively involved in the growing Stellar community in East Africa. Our journey with Stellar began through participation in local blockchain meetups and Stellar Development Foundation (SDF) educational initiatives.
+
+Despite being new to Stellar development, our team brings diverse expertise in:
+
+- Web and mobile application development
+- Financial technology solutions for African markets
+- Mobile money integration experience (particularly with M-Pesa)
+- User experience design for financial applications
+
+Our learning process involved:
+
+1. Completing SDF's developer courses and documentation
+2. Participating in Stellar community forums and discussions
+3. Building small proof-of-concept applications before tackling EazeFi
+4. Receiving mentorship from experienced Stellar developers
+
+As part of the Stellar community in Tanzania, we're committed to sharing our learnings and contributing to the ecosystem's growth in East Africa.
+
+## Development Setup
+
+### Prerequisites
+
+- Node.js v16 or later
+- npm v8 or later
+- Git
+- Rust and Cargo (for Soroban contract development)
+- Soroban CLI
+
+### Installation
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/0xMgwan/EazeFi.git
+   cd EazeFi
+   ```
+
+2. Install dependencies
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables
+   ```bash
+   cp .env.example .env
+   # Edit .env file with your configuration
+   ```
+
+4. Start the development server
+   ```bash
+   npm run dev
+   ```
+
+5. Open your browser and navigate to `http://localhost:3000`
+
+### Deploying Soroban Contracts
+
+1. Navigate to the contracts directory
+   ```bash
+   cd contracts
+   ```
+
+2. Build the contracts
+   ```bash
+   ./scripts/build.sh
+   ```
+
+3. Deploy to Stellar Testnet
+   ```bash
+   ./scripts/deploy.sh
+   ```
+
+4. Initialize contracts with required parameters
+   ```bash
+   ./scripts/initialize.sh
+   ```
+
+## Deployment and Testing Instructions
+
+### Local Testing
+
+1. Run the test suite
+   ```bash
+   npm test
+   ```
+
+2. Run contract tests
+   ```bash
+   cd contracts
+   cargo test
+   ```
+
+### Testnet Deployment
+
+EazeFi is currently deployed on Stellar Testnet. To interact with the deployed version:
+
+1. Visit [https://eazefi.vercel.app](https://eazefi.vercel.app)
+2. Connect your Stellar testnet wallet (Freighter, Albedo, etc.)
+3. Fund your testnet wallet using Stellar's Friendbot if needed
+4. Try sending a test remittance
+
+### Testing Credentials
+
+For testing the M-Pesa integration on testnet:
+
+- **Test Phone Number**: +255747630873
+- **Test M-Pesa PIN**: 1234
+- **Test Recipient Name**: Mary Mwanjelwa
+- **Test Country**: Tanzania
+
+### Soroban Contract IDs
+
+- **Remittance Contract**: CDCYWK73YTYFJZZSJ5V7EDFNHYBG4QN3VUNG4DQHI72HPQYQTQKBVVKL
+- **Family Pool Contract**: (Contact team for current testnet deployment ID)
+- **Token Wrapper Contract**: (Contact team for current testnet deployment ID)
+
+### TSHT Token Details
+
+- **Asset Code**: TSHT (Tanzania Shilling Token)
+- **Issuer**: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+- **Network**: Stellar Testnet
 
 ## Contributing
 
