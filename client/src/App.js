@@ -23,6 +23,7 @@ import FamilyPool from './components/family/FamilyPool';
 import CreateFamilyPool from './components/family/CreateFamilyPool';
 import Profile from './components/profile/Profile';
 import SwapPage from './pages/SwapPage';
+import KycVerification from './pages/KycVerification';
 
 // Public Pages
 import Landing from './pages/Landing';
@@ -78,6 +79,10 @@ const App = () => {
                 <Route 
                   path="/profile" 
                   element={<PrivateRoute component={Profile} />} 
+                />
+                <Route 
+                  path="/kyc-verification" 
+                  element={<PrivateRoute component={KycVerification} />} 
                 />
                 <Route 
                   path="/swap" 

@@ -11,6 +11,7 @@ const Profile = () => {
     country: '',
     language: '',
     currency: '',
+    kycStatus: 'not_started', // Possible values: not_started, pending, verified, rejected
     notifications: {
       email: true,
       sms: true,
@@ -31,6 +32,7 @@ const Profile = () => {
         country: user.country || '',
         language: user.language || 'en',
         currency: user.currency || 'USD',
+        kycStatus: user.kycStatus || 'not_started',
         notifications: {
           email: user.notifications?.email !== false,
           sms: user.notifications?.sms !== false,
@@ -345,6 +347,74 @@ const Profile = () => {
                 </p>
               </div>
             )}
+          </div>
+          
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">KYC Verification</h2>
+            
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 mt-1">
+                  {formData.kycStatus === 'verified' ? (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+                      <i className="fas fa-check text-green-600"></i>
+                    </span>
+                  ) : formData.kycStatus === 'pending' ? (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100">
+                      <i className="fas fa-clock text-yellow-600"></i>
+                    </span>
+                  ) : formData.kycStatus === 'rejected' ? (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                      <i className="fas fa-times text-red-600"></i>
+                    </span>
+                  ) : (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                      <i className="fas fa-user-shield text-gray-600"></i>
+                    </span>
+                  )}
+                </div>
+                <div className="ml-4 flex-1">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Identity Verification
+                    {formData.kycStatus === 'verified' && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Verified
+                      </span>
+                    )}
+                    {formData.kycStatus === 'pending' && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Pending
+                      </span>
+                    )}
+                    {formData.kycStatus === 'rejected' && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        Rejected
+                      </span>
+                    )}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {formData.kycStatus === 'verified' ? (
+                      'Your identity has been verified. You now have full access to all features of EazeFi.'
+                    ) : formData.kycStatus === 'pending' ? (
+                      'Your verification is currently being processed. This usually takes 1-2 business days.'
+                    ) : formData.kycStatus === 'rejected' ? (
+                      'Your verification was rejected. Please review the feedback and resubmit.'
+                    ) : (
+                      'Complete the KYC verification process to unlock all features of EazeFi, including higher transaction limits.'
+                    )}
+                  </p>
+                  {(formData.kycStatus === 'not_started' || formData.kycStatus === 'rejected') && (
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      onClick={() => window.location.href = '/kyc-verification'}
+                    >
+                      Start Verification
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
           
           <div className="p-6 bg-gray-50">
