@@ -80,11 +80,6 @@ const SendMoney = () => {
     // Generate a random recipient address for testnet demo
     const keypair = StellarSdk.Keypair.random();
     setRecipientAddress(keypair.publicKey());
-    
-    // Set default recipient information
-    setRecipientDemoName('Mary Mwanjelwa');
-    setRecipientDemoCountry('Tanzania');
-    setRecipientPhone('0747630873');
   }, []);
 
   useEffect(() => {
@@ -572,22 +567,8 @@ const SendMoney = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Send Money</h1>
-          
-          {/* Toggle switch for testnet demo */}
-          <div className="flex items-center">
-            <span className="text-sm text-gray-600 mr-2">Testnet Demo</span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="sr-only peer" 
-                checked={isTestnetDemo}
-                onChange={toggleTestnetDemo}
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Cross-Border Remittance</h1>
         </div>
         
         <div className="bg-blue-50 p-4 rounded-lg mb-6">
