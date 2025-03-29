@@ -50,7 +50,8 @@ const Wallet = () => {
 
   const mockBalances = [
     { asset_code: 'XLM', balance: '1250.50', asset_type: 'native' },
-    { asset_code: 'USDC', balance: '500.00', asset_type: 'credit_alphanum4', asset_issuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5' }
+    { asset_code: 'USDC', balance: '500.00', asset_type: 'credit_alphanum4', asset_issuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5' },
+    { asset_code: 'TSHT', balance: '248730.00', asset_type: 'credit_alphanum4', asset_issuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5' }
   ];
 
   const mockTransactions = [
@@ -217,17 +218,74 @@ const Wallet = () => {
             </div>
             <div className="px-6 pb-6">
               {/* Direct Testnet Funding Component */}
-              <FundTestnetWallet />
+              {/* Direct Fund Testnet Wallet Button */}
+              <div className="bg-yellow-500/10 rounded-lg border border-yellow-500/30 p-4 mb-4">
+                <div className="flex items-center mb-3">
+                  <div className="text-yellow-400 mr-3">
+                    <FaRocket size={18} />
+                  </div>
+                  <h3 className="text-yellow-300 font-medium">Fund Testnet Wallet</h3>
+                </div>
+                
+                <p className="text-yellow-200/70 text-sm mb-4">
+                  New to EazeFi? Get free testnet XLM to try out all features. This is for testing only and has no real value.
+                </p>
+                
+                <button
+                  onClick={async () => {
+                    if (!wallet || !wallet.address) {
+                      alert('Please connect your wallet first');
+                      setConnectWalletModal(true);
+                      return;
+                    }
+                    
+                    try {
+                      // Call Friendbot API directly
+                      await axios.get(`https://friendbot.stellar.org?addr=${wallet.address}`);
+                      alert('Your wallet has been funded with testnet XLM!');
+                      
+                      // Refresh balance after funding
+                      setTimeout(() => {
+                        getBalance();
+                      }, 2000);
+                    } catch (error) {
+                      console.error('Error funding wallet:', error);
+                      alert('This wallet has already been funded or there was an error with the Friendbot service.');
+                    }
+                  }}
+                  className="w-full py-2 px-4 rounded-lg flex items-center justify-center font-medium transition-all duration-300 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30"
+                >
+                  <FaRocket className="mr-2" size={14} />
+                  Fund Wallet with Testnet XLM
+                </button>
+                <p className="text-yellow-200/50 text-xs mt-2">Powered by Stellar Friendbot. Limited to one funding per wallet.</p>
+              </div>
               
               <div className="flex space-x-3">
                 <button 
-                  onClick={() => setFundModal(true)}
+                  onClick={() => {
+                    if (wallet && wallet.address) {
+                      // Direct fund action
+                      window.open('https://laboratory.stellar.org/#account-creator?network=test', '_blank');
+                    } else {
+                      alert('Please connect your wallet first');
+                      setConnectWalletModal(true);
+                    }
+                  }}
                   className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center flex-1 justify-center border border-gray-700 hover:border-blue-500/30"
                 >
                   <FaPlus className="mr-2" size={14} /> Fund
                 </button>
                 <button 
-                  onClick={() => setWithdrawModal(true)}
+                  onClick={() => {
+                    if (wallet && wallet.address) {
+                      // Direct withdraw action
+                      window.open(`https://laboratory.stellar.org/#txbuilder?network=test&source=${wallet.address}`, '_blank');
+                    } else {
+                      alert('Please connect your wallet first');
+                      setConnectWalletModal(true);
+                    }
+                  }}
                   className="bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white font-medium py-2 px-4 rounded-lg transition duration-300 flex items-center flex-1 justify-center border border-gray-700 hover:border-blue-500/30"
                 >
                   <FaArrowUp className="mr-2" size={14} /> Withdraw

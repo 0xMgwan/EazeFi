@@ -376,6 +376,16 @@ const SendMoney = () => {
       // Store transaction hash
       setTransactionHash(xlmTransactionResult.hash);
       
+      // Force refresh balance after transaction
+      setTimeout(async () => {
+        try {
+          await getBalance();
+          console.log('Balance refreshed after transaction');
+        } catch (err) {
+          console.error('Error refreshing balance:', err);
+        }
+      }, 3000); // Wait 3 seconds to allow the network to process the transaction
+      
       // Step 2: Create a remittance using the Soroban contract
       try {
         // Load account again for the Soroban transaction
@@ -1129,6 +1139,21 @@ const SendMoney = () => {
                             <p className="mt-1 text-sm text-green-700">
                               This is a real transaction on the Stellar testnet using the EazeFi remittance contract.
                             </p>
+                            {transactionHash && (
+                              <p className="mt-2 text-sm text-blue-700">
+                                <strong>Transaction Hash:</strong> <a 
+                                  href={`https://stellar.expert/explorer/testnet/tx/${transactionHash}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="underline hover:text-blue-900"
+                                >
+                                  {transactionHash.substring(0, 10)}...{transactionHash.substring(transactionHash.length - 10)} <span>↗</span>
+                                </a>
+                              </p>
+                            )}
+                            <p className="mt-2 text-sm text-blue-700">
+                              <strong>Note:</strong> To see the TSHT tokens in the recipient wallet, the recipient needs to add the TSHT token to their wallet by using the asset code "TSHT" and issuer "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5".
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1203,6 +1228,9 @@ const SendMoney = () => {
                           setError(null);
                           setSuccess(false);
                           setFormData({...formData, amount: ''});
+                          setAmount('');
+                          // Force refresh balance when starting a new transaction
+                          getBalance();
                         }}
                         className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg"
                       >

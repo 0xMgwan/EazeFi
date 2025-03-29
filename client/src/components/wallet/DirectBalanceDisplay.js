@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BiRefresh } from 'react-icons/bi';
+import { FaCheckCircle } from 'react-icons/fa';
 
 const DirectBalanceDisplay = ({ walletAddress }) => {
   const [directBalance, setDirectBalance] = useState('0.00');
+  const [tshtBalance, setTshtBalance] = useState('0.00');
+  const [hasTsht, setHasTsht] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastChecked, setLastChecked] = useState(null);
@@ -30,6 +33,23 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
       } else {
         console.log('No XLM balance found in account');
         setDirectBalance('0.00');
+      }
+      
+      // Check for TSHT tokens
+      const tshtBalance = account.balances.find(b => 
+        b.asset_code === 'TSHT' && 
+        b.asset_issuer === 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
+      );
+      
+      if (tshtBalance) {
+        const amount = parseFloat(tshtBalance.balance).toFixed(2);
+        console.log('Found TSHT balance:', amount);
+        setTshtBalance(amount);
+        setHasTsht(true);
+      } else {
+        console.log('No TSHT tokens found in account');
+        setTshtBalance('0.00');
+        setHasTsht(false);
       }
     } catch (error) {
       console.error('Error fetching direct balance:', error);
@@ -80,6 +100,36 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
             </>
           )}
         </div>
+        
+        {/* TSHT Balance Display */}
+        {!loading && !error && (
+          <div className="mt-3 p-2 bg-green-500/10 rounded border border-green-500/30">
+            <div className="flex items-center justify-between">
+              <span className="text-green-300 text-sm">TSHT Tokens:</span>
+              <span className="text-xs bg-green-600/30 px-2 py-0.5 rounded-full text-green-300">Tanzania Shilling</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-1">
+              {hasTsht ? tshtBalance : '0.00'} <span className="text-green-400">TSHT</span>
+            </div>
+            <div className="text-green-400/70 text-xs mt-1">
+              {hasTsht 
+                ? 'Remittance tokens received' 
+                : 'Complete a remittance to receive TSHT tokens'}
+            </div>
+            <button 
+              onClick={() => {
+                if (walletAddress) {
+                  // Add TSHT token to wallet
+                  window.open('https://laboratory.stellar.org/#account-creator?network=test', '_blank');
+                  alert('To add TSHT tokens to your wallet, use the Stellar Laboratory to create a trustline with:\n\nAsset Code: TSHT\nIssuer: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5');
+                }
+              }}
+              className="mt-2 w-full text-xs bg-green-500/20 hover:bg-green-500/30 text-green-300 py-1 px-2 rounded border border-green-500/30"
+            >
+              {hasTsht ? 'View TSHT Details' : 'Add TSHT to Wallet'}
+            </button>
+          </div>
+        )}
         
         {lastChecked && !loading && !error && (
           <div className="text-xs text-green-500 mt-1">
