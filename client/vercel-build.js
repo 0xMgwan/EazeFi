@@ -56,28 +56,49 @@ async function build() {
     // Don't exit, try to continue the build
   }
   
-  console.log('Installing dependencies...');
-  if (!runCommand('npm install --legacy-peer-deps')) {
-    console.warn('Failed to install dependencies with --legacy-peer-deps, trying without...');
-    if (!runCommand('npm install')) {
-      console.error('Failed to install dependencies');
-      process.exit(1);
-    }
+  // Create a fix for the process/browser issue
+  console.log('Creating process/browser fix...');
+  const processFix = `
+  // Fix for process/browser polyfill
+  if (typeof process === 'undefined') {
+    window.process = { browser: true, env: { NODE_ENV: 'production' } };
+  }
+  `;
+  
+  // Create a file with the process fix
+  fs.writeFileSync(path.join(__dirname, 'src', 'processFix.js'), processFix);
+  
+  // Add import to index.js
+  const indexPath = path.join(__dirname, 'src', 'index.js');
+  let indexContent = fs.readFileSync(indexPath, 'utf8');
+  if (!indexContent.includes('processFix')) {
+    indexContent = `import './processFix';
+${indexContent}`;
+    fs.writeFileSync(indexPath, indexContent);
+    console.log('Added process fix to index.js');
   }
   
-  // Explicitly install the Stellar Wallets Kit package
-  console.log('Explicitly installing Stellar Wallets Kit...');
-  if (!runCommand('npm install @creit.tech/stellar-wallets-kit@1.7.3 --force')) {
-    console.warn('Warning: Failed to explicitly install Stellar Wallets Kit, but continuing build');
-    // Don't exit, try to continue the build
+  console.log('Installing dependencies with --force to resolve conflicts...');
+  if (!runCommand('npm install --force')) {
+    console.error('Failed to install dependencies');
+    process.exit(1);
   }
   
-  console.log('Building the application...');
+  // Explicitly install key packages
+  console.log('Installing critical dependencies...');
+  if (!runCommand('npm install process path-browserify os-browserify stream-browserify buffer crypto-browserify --force')) {
+    console.warn('Warning: Failed to install some polyfills, but continuing build');
+  }
+  
+  console.log('Building the application with CI=false to ignore warnings...');
   try {
-    // Try using craco build directly
-    if (!runCommand('npx craco build')) {
-      console.warn('Failed to build with craco directly, trying npm run build...');
-      if (!runCommand('npm run build')) {
+    // Set environment variables for the build
+    process.env.CI = 'false';
+    process.env.GENERATE_SOURCEMAP = 'false';
+    
+    if (!runCommand('CI=false GENERATE_SOURCEMAP=false npm run build')) {
+      console.warn('Standard build failed, trying with craco directly...');
+      if (!runCommand('CI=false GENERATE_SOURCEMAP=false npx craco build')) {
         console.error('All build attempts failed');
         process.exit(1);
       }

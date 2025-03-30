@@ -1,4 +1,5 @@
 const webpack = require('webpack');
+const path = require('path');
 
 module.exports = {
   webpack: {
@@ -12,7 +13,19 @@ module.exports = {
         "buffer": require.resolve("buffer/"),
         "stream": require.resolve("stream-browserify"),
         "crypto": require.resolve("crypto-browserify"),
-        "process": require.resolve("process/browser")
+        "process": require.resolve("process/browser"),
+        "path": require.resolve("path-browserify"),
+        "util": require.resolve("util/"),
+        "assert": require.resolve("assert/"),
+        "fs": false,
+        "os": require.resolve("os-browserify/browser"),
+        "zlib": require.resolve("browserify-zlib")
+      };
+
+      // Explicitly add process/browser to resolve
+      webpackConfig.resolve.alias = {
+        ...webpackConfig.resolve.alias,
+        'process/browser': path.resolve(__dirname, 'node_modules/process/browser.js')
       };
 
       // Provide global variables
