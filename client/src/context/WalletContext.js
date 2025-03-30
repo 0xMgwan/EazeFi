@@ -319,9 +319,44 @@ export const WalletProvider = ({ children }) => {
       console.log('Fetching balance for wallet:', wallet.address);
       
       try {
-        // Get balance from Stellar Horizon API
-        const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
-        const account = await server.loadAccount(wallet.address);
+        // Use fetch API directly instead of the Stellar SDK for more control
+        console.log('Fetching balance using fetch API...');
+        console.log(`Requesting from: https://horizon-testnet.stellar.org/accounts/${wallet.address}`);
+        
+        // Create a timeout promise to abort the request if it takes too long
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${wallet.address}`, {
+          signal: controller.signal,
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          // If account doesn't exist (404) or other error, handle gracefully
+          console.log(`Account fetch failed with status: ${response.status} ${response.statusText}`);
+          
+          // Set a default balance of 0 XLM for new accounts
+          const defaultBalance = [{
+            asset: 'XLM',
+            balance: 0,
+            assetType: 'native',
+            assetCode: 'XLM',
+            assetIssuer: 'native',
+          }];
+          
+          setBalances(defaultBalance);
+          setLoading(false);
+          return defaultBalance;
+        }
+        
+        // Parse the account data
+        const account = await response.json();
         
         // Format balances
         const formattedBalances = account.balances.map(balance => {
@@ -338,28 +373,77 @@ export const WalletProvider = ({ children }) => {
         });
         
         console.log('Balances fetched successfully:', formattedBalances);
+        
+        // Update all balance displays on the page for immediate feedback
+        const xlmBalance = formattedBalances.find(b => b.assetType === 'native');
+        if (xlmBalance) {
+          const balance = xlmBalance.balance.toFixed(2);
+          document.querySelectorAll('.balance-display').forEach(el => {
+            el.textContent = balance;
+          });
+        }
+        
         setBalances(formattedBalances);
         setLoading(false);
         return formattedBalances;
-      } catch (accountErr) {
-        // Handle the case where the account doesn't exist yet
-        if (accountErr.response && accountErr.response.status === 404) {
-          console.log('Account not found on network. This is normal for new wallets.');
-          // Set a default balance of 0 XLM for new accounts
-          const defaultBalance = [{
-            asset: 'XLM',
-            balance: 0,
-            assetType: 'native',
-            assetCode: 'XLM',
-            assetIssuer: 'native',
-          }];
-          setBalances(defaultBalance);
-          setLoading(false);
-          return defaultBalance;
+      } catch (error) {
+        // Check if it's an AbortError (timeout)
+        if (error.name === 'AbortError') {
+          console.error('Fetch request timed out. Network may be slow.');
+          // Try a fallback method with a longer timeout
+          try {
+            console.log('Attempting fallback fetch with longer timeout...');
+            const fallbackResponse = await fetch(`https://horizon-testnet.stellar.org/accounts/${wallet.address}`, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+              },
+              // Longer timeout for fallback
+              timeout: 15000
+            });
+            
+            if (fallbackResponse.ok) {
+              const account = await fallbackResponse.json();
+              
+              // Format balances
+              const formattedBalances = account.balances.map(balance => {
+                return {
+                  asset: balance.asset_type === 'native' ? 'XLM' : `${balance.asset_code}:${balance.asset_issuer}`,
+                  balance: parseFloat(balance.balance),
+                  limit: balance.limit ? parseFloat(balance.limit) : null,
+                  buyingLiabilities: balance.buying_liabilities ? parseFloat(balance.buying_liabilities) : 0,
+                  sellingLiabilities: balance.selling_liabilities ? parseFloat(balance.selling_liabilities) : 0,
+                  assetType: balance.asset_type,
+                  assetCode: balance.asset_code || 'XLM',
+                  assetIssuer: balance.asset_issuer || 'native',
+                };
+              });
+              
+              console.log('Balances fetched successfully via fallback:', formattedBalances);
+              setBalances(formattedBalances);
+              setLoading(false);
+              return formattedBalances;
+            } else {
+              throw new Error(`Fallback fetch failed with status: ${fallbackResponse.status}`);
+            }
+          } catch (fallbackError) {
+            console.error('Fallback fetch also failed:', fallbackError.message || fallbackError);
+          }
         } else {
-          // Re-throw for other errors
-          throw accountErr;
+          console.error('Error fetching balance:', error.message || error);
         }
+        
+        // Set a default balance of 0 XLM for error cases
+        const defaultBalance = [{
+          asset: 'XLM',
+          balance: 0,
+          assetType: 'native',
+          assetCode: 'XLM',
+          assetIssuer: 'native',
+        }];
+        setBalances(defaultBalance);
+        setLoading(false);
+        return defaultBalance;
       }
     } catch (err) {
       console.error('Error getting balance:', err);

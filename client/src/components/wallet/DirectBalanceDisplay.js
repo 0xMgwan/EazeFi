@@ -21,69 +21,130 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
     setLoading(true);
     setError(null);
     
-    try {
-      console.log('Directly fetching balance for:', walletAddress);
-      const response = await axios.get(`https://horizon-testnet.stellar.org/accounts/${walletAddress}`);
-      const account = response.data;
-      
-      // Find native XLM balance
-      const xlmBalance = account.balances.find(b => b.asset_type === 'native');
-      if (xlmBalance) {
-        const amount = parseFloat(xlmBalance.balance).toFixed(2);
-        console.log('Found XLM balance:', amount);
-        setDirectBalance(amount);
-        setLastChecked(new Date());
-      } else {
-        console.log('No XLM balance found in account');
-        setDirectBalance('0.00');
+    // Define multiple endpoints to try in case of failure
+    const endpoints = [
+      `https://horizon-testnet.stellar.org/accounts/${walletAddress}`,
+      `https://horizon.stellar.org/accounts/${walletAddress}`,
+      `https://horizon-testnet.stellar.org/accounts/${walletAddress}?_=${Date.now()}` // With cache busting
+    ];
+    
+    let success = false;
+    let lastError = null;
+    
+    // Try each endpoint until one succeeds
+    for (let i = 0; i < endpoints.length && !success; i++) {
+      try {
+        console.log(`Attempt ${i+1}: Fetching from ${endpoints[i]}`);
+        
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timed out')), 5000);
+        });
+        
+        // Race the fetch against the timeout
+        const response = await Promise.race([
+          fetch(endpoints[i], {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store'
+          }),
+          timeoutPromise
+        ]);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            console.log('Account not found on network. This is normal for new wallets.');
+            setDirectBalance('0.00');
+            setTshtBalance('0.00');
+            setHasTsht(false);
+            setError('Account not active yet. Fund your wallet to activate it.');
+            setLoading(false);
+            return;
+          } else {
+            throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+          }
+        }
+        
+        const account = await response.json();
+        
+        // Find native XLM balance
+        const xlmBalance = account.balances.find(b => b.asset_type === 'native');
+        if (xlmBalance) {
+          const amount = parseFloat(xlmBalance.balance).toFixed(2);
+          console.log('Found XLM balance:', amount);
+          setDirectBalance(amount);
+          setLastChecked(new Date());
+          setError(null); // Clear any previous errors
+          
+          // Update all balance displays on the page for immediate feedback
+          document.querySelectorAll('.balance-display').forEach(el => {
+            el.textContent = amount;
+          });
+        } else {
+          console.log('No XLM balance found in account');
+          setDirectBalance('0.00');
+        }
+        
+        // Check for TSHT tokens (Tanzania Shilling Token)
+        const tshtAssetBalance = account.balances.find(b => 
+          b.asset_code === 'TSHT' && 
+          b.asset_issuer === 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
+        );
+        
+        if (tshtAssetBalance) {
+          const amount = parseFloat(tshtAssetBalance.balance).toFixed(2);
+          console.log('Found TSHT balance:', amount);
+          setTshtBalance(amount);
+          setHasTsht(true);
+        } else {
+          console.log('No TSHT tokens found in account');
+          setTshtBalance('0.00');
+          setHasTsht(false);
+        }
+        
+        // Mark this attempt as successful
+        success = true;
+        
+      } catch (error) {
+        console.error(`Error with endpoint ${endpoints[i]}:`, error.message || error);
+        lastError = error;
+        // Continue to the next endpoint
       }
-      
-      // Check for TSHT tokens
-      const tshtBalance = account.balances.find(b => 
-        b.asset_code === 'TSHT' && 
-        b.asset_issuer === 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
-      );
-      
-      if (tshtBalance) {
-        const amount = parseFloat(tshtBalance.balance).toFixed(2);
-        console.log('Found TSHT balance:', amount);
-        setTshtBalance(amount);
-        setHasTsht(true);
-      } else {
-        console.log('No TSHT tokens found in account');
-        setTshtBalance('0.00');
-        setHasTsht(false);
-      }
-    } catch (error) {
-      console.error('Error fetching direct balance:', error);
-      
-      // Handle 404 errors specifically (account not found)
-      if (error.response && error.response.status === 404) {
-        console.log('Account not found on Stellar network. Wallet may need funding.');
-        // For new accounts, show 0 balance instead of error
-        setDirectBalance('0.00');
-        setTshtBalance('0.00');
-        setHasTsht(false);
-        setError('Account not active. Fund your wallet to activate it.');
-      } else {
-        setError('Failed to fetch balance');
-      }
-    } finally {
-      setLoading(false);
     }
+    
+    // If all attempts failed, show an error
+    if (!success) {
+      console.error('All balance fetch attempts failed:', lastError);
+      setDirectBalance('--');
+      setTshtBalance('--');
+      setHasTsht(false);
+      setError(`Network error: ${lastError?.message || 'Could not connect to Stellar network'}. Try again later.`);
+    }
+    
+    setLoading(false);
   };
   
   // Fetch balance on mount and when address changes
   useEffect(() => {
     if (walletAddress) {
+      console.log('Wallet address available, fetching direct balance immediately');
       fetchDirectBalance();
       
-      // Set up automatic refresh every 15 seconds
+      // Fetch balance multiple times with shorter intervals initially for better responsiveness
+      const immediateRefreshes = [
+        setTimeout(() => fetchDirectBalance(), 2000),  // 2 seconds
+        setTimeout(() => fetchDirectBalance(), 5000),  // 5 seconds
+      ];
+      
+      // Set up automatic refresh every 15 seconds for ongoing updates
       const refreshInterval = setInterval(() => {
         fetchDirectBalance();
       }, 15000);
       
-      return () => clearInterval(refreshInterval);
+      return () => {
+        clearInterval(refreshInterval);
+        immediateRefreshes.forEach(timeout => clearTimeout(timeout));
+      };
     } else {
       // Reset state if wallet address is not available
       setDirectBalance('0.00');

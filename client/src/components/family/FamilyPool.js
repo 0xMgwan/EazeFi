@@ -90,15 +90,27 @@ const FamilyPool = () => {
 
   // Calculate pool statistics
   const calculatePoolStats = (pool) => {
-    const totalContributions = pool.contributions.reduce((sum, contribution) => sum + parseFloat(contribution.amount), 0);
-    const totalWithdrawals = pool.withdrawals.reduce((sum, withdrawal) => sum + parseFloat(withdrawal.amount), 0);
-    const currentBalance = totalContributions - totalWithdrawals;
+    // Ensure contributions and withdrawals exist with fallbacks
+    const contributions = pool.contributions || [];
+    const withdrawals = pool.withdrawals || [];
+    
+    const totalContributions = contributions.length > 0 ?
+      contributions.reduce((sum, contribution) => sum + parseFloat(contribution.amount || 0), 0) : 0;
+      
+    const totalWithdrawals = withdrawals.length > 0 ?
+      withdrawals.reduce((sum, withdrawal) => sum + parseFloat(withdrawal.amount || 0), 0) : 0;
+      
+    // For pools without transaction history, use the balance directly
+    const currentBalance = pool.balance !== undefined ? 
+      pool.balance : (totalContributions - totalWithdrawals);
     
     return {
       totalContributions,
       totalWithdrawals,
       currentBalance,
-      contributorsCount: new Set(pool.contributions.map(c => c.contributorId)).size
+      contributorsCount: contributions.length > 0 ? 
+        new Set(contributions.map(c => c.contributorId || '')).size : 
+        pool.members?.length || 0
     };
   };
 
