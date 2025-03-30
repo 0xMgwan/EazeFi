@@ -1,0 +1,6 @@
+{
+  "framework": "create-react-app",
+  "buildCommand": "CI=false GENERATE_SOURCEMAP=false DISABLE_ESLINT_PLUGIN=true npm run build",
+  "installCommand": "npm install --no-optional",
+  "outputDirectory": "build"
+}

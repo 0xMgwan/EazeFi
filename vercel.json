@@ -1,17 +1,17 @@
 {
   "version": 2,
-  "buildCommand": "node vercel-build.js",
-  "outputDirectory": "client/build",
-  "framework": "create-react-app",
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api"
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build",
+        "buildCommand": "npm install && npm run build"
+      }
     }
   ],
-  "env": {
-    "NODE_ENV": "production",
-    "CI": "false",
-    "GENERATE_SOURCEMAP": "false"
-  }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api" },
+    { "src": "/(.*)", "dest": "/client/build/$1" }
+  ]
 }
