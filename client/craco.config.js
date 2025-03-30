@@ -1,5 +1,5 @@
 const webpack = require('webpack');
-const path = require('path');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 module.exports = {
   webpack: {
@@ -22,19 +22,18 @@ module.exports = {
         "zlib": require.resolve("browserify-zlib")
       };
 
-      // Explicitly add process/browser and https-browserify to resolve
+      // Don't use direct path references as they cause issues in Vercel
       webpackConfig.resolve.alias = {
-        ...webpackConfig.resolve.alias,
-        'process/browser': path.resolve(__dirname, 'node_modules/process/browser.js'),
-        'https': path.resolve(__dirname, 'node_modules/https-browserify/index.js')
+        ...webpackConfig.resolve.alias
       };
 
-      // Provide global variables
+      // Use NodePolyfillPlugin to handle all Node.js polyfills
       webpackConfig.plugins = [
         ...webpackConfig.plugins,
+        new NodePolyfillPlugin(),
         new webpack.ProvidePlugin({
           Buffer: ['buffer', 'Buffer'],
-          process: 'process/browser'
+          process: 'process'
         }),
         new webpack.DefinePlugin({
           'process.browser': JSON.stringify(true),
