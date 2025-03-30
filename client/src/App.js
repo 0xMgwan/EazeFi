@@ -59,7 +59,7 @@ const App = () => {
                 />
                 <Route 
                   path="/wallet" 
-                  element={<Wallet />} 
+                  element={<PrivateRoute component={Wallet} />} 
                 />
                 <Route 
                   path="/send-money" 

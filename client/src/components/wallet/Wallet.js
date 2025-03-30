@@ -12,18 +12,26 @@ import axios from 'axios';
 import { showSuccess, showError, showInfo, showLoading, updateToast } from '../../utils/notificationUtils';
 
 const Wallet = () => {
+  // Add component-level error state
+  const [componentError, setComponentError] = useState(null);
+  const [isComponentLoading, setIsComponentLoading] = useState(true);
+
+  // Get wallet context
+  const walletContext = useContext(WalletContext);
+  
+  // Destructure with fallbacks to prevent errors
   const { 
-    wallet, 
-    balances, 
-    transactions, 
-    getWallet, 
-    getBalance, 
-    getTransactions,
-    fundWallet,
-    withdrawFromWallet,
-    setWallet,
-    loading 
-  } = useContext(WalletContext);
+    wallet = null, 
+    balances = [], 
+    transactions = [], 
+    getWallet = () => console.error('getWallet not available'), 
+    getBalance = () => console.error('getBalance not available'), 
+    getTransactions = () => console.error('getTransactions not available'),
+    fundWallet = () => console.error('fundWallet not available'),
+    withdrawFromWallet = () => console.error('withdrawFromWallet not available'),
+    setWallet = () => console.error('setWallet not available'),
+    loading = false 
+  } = walletContext || {};
   
   const [activeTab, setActiveTab] = useState('balances');
   const [fundModal, setFundModal] = useState(false);
@@ -132,12 +140,50 @@ const Wallet = () => {
     }
   };
   
-  // Use effect to force balance update when component mounts
+  // Use effect to initialize component and handle errors
+  useEffect(() => {
+    console.log('Wallet component mounted');
+    setIsComponentLoading(true);
+    
+    try {
+      // Check if wallet context is available
+      if (!walletContext) {
+        console.error('WalletContext is not available');
+        setComponentError('Wallet context not available. Please refresh the page.');
+        setIsComponentLoading(false);
+        return;
+      }
+      
+      console.log('WalletContext state:', { wallet, balances, loading });
+      
+      // Initialize wallet if needed
+      if (!wallet && getWallet) {
+        console.log('Initializing wallet...');
+        getWallet();
+      }
+      
+      // Force balance update if wallet is available
+      if (wallet && wallet.address) {
+        console.log('Wallet found, updating balances...');
+        forceBalanceUpdate();
+        
+        // Set up multiple balance checks with increasing delays
+        const checkTimes = [1000, 3000, 5000];
+      } else {
+        console.log('No wallet available, using mock data');
+      }
+      
+      setIsComponentLoading(false);
+    } catch (error) {
+      console.error('Error initializing wallet component:', error);
+      setComponentError(`Error initializing wallet: ${error.message}`);
+      setIsComponentLoading(false);
+    }
+  }, [wallet, walletContext, getWallet, forceBalanceUpdate]);
+  
+  // Set up periodic balance updates when wallet is available
   useEffect(() => {
     if (wallet && wallet.address) {
-      forceBalanceUpdate();
-      
-      // Set up multiple balance checks with increasing delays
       const checkTimes = [1000, 3000, 5000];
       
       checkTimes.forEach(delay => {
@@ -146,23 +192,40 @@ const Wallet = () => {
         }, delay);
       });
     }
-  }, [wallet]);
+  }, [wallet, forceBalanceUpdate]);
   
   // Render loading state with a timeout to prevent infinite loading
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   
   useEffect(() => {
     // Set a timeout to stop showing the loading spinner after 5 seconds
-    if (loading) {
+    if (loading || isComponentLoading) {
       const timer = setTimeout(() => {
         setLoadingTimeout(true);
       }, 5000);
       
       return () => clearTimeout(timer);
     }
-  }, [loading]);
+  }, [loading, isComponentLoading]);
   
-  if (loading && !loadingTimeout) {
+  // Render error state if there's a component error
+  if (componentError) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-md">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Wallet</h2>
+        <p className="text-gray-700 mb-4">{componentError}</p>
+        <p className="mb-4">Please try refreshing the page or contact support if the issue persists.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Refresh Page
+        </button>
+      </div>
+    );
+  }
+  
+  if ((loading || isComponentLoading) && !loadingTimeout) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
