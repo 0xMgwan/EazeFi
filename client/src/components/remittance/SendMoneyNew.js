@@ -48,6 +48,14 @@ const SendMoney = () => {
     // Check if user has TSHT trustline
     if (wallet && wallet.address) {
       checkTSHTTrustline(wallet.address);
+      
+      // Set up an interval to refresh the balance every 10 seconds
+      const balanceInterval = setInterval(() => {
+        getBalance();
+      }, 10000);
+      
+      // Clean up interval on component unmount
+      return () => clearInterval(balanceInterval);
     }
   }, [wallet]);
   
@@ -1323,11 +1331,12 @@ const SendMoney = () => {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="text-sm text-gray-600">Connected Wallet</p>
-                        <p className="font-mono text-xs truncate max-w-[200px]">{wallet?.address || 'Not connected'}</p>
+                        <p className="font-mono text-xs truncate max-w-[200px]">{wallet?.address ? wallet.address : 'Not connected'}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600">Balance</p>
-                        <p className="font-medium">{balances?.xlm || '0'} XLM</p>
+                        <p className="font-medium">{Array.isArray(balances) && balances.length > 0 ? 
+                          balances.find(b => b.assetType === 'native')?.balance.toFixed(2) || '0' : '0'} XLM</p>
                       </div>
                     </div>
                     
