@@ -1,6 +1,10 @@
 {
   "framework": "create-react-app",
   "buildCommand": "CI=false GENERATE_SOURCEMAP=false DISABLE_ESLINT_PLUGIN=true npm run build",
-  "installCommand": "npm install --no-optional",
-  "outputDirectory": "build"
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": "build",
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
