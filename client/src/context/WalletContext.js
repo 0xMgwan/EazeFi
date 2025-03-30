@@ -2,6 +2,19 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import StellarSdk from 'stellar-sdk';
 import { AuthContext } from './AuthContext';
+import { 
+  StellarWalletsKit, 
+  WalletNetwork, 
+  allowAllModules,
+  ALBEDO_ID,
+  FREIGHTER_ID,
+  XBULL_ID,
+  LOBSTR_ID,
+  AlbedoModule,
+  FreighterModule,
+  LobstrModule,
+  xBullModule
+} from '@creit.tech/stellar-wallets-kit';
 
 export const WalletContext = createContext();
 
@@ -12,70 +25,198 @@ export const WalletProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [remittances, setRemittances] = useState([]);
   const [familyPools, setFamilyPools] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Changed to false to prevent initial loading state
   const [error, setError] = useState(null);
+  const [walletKit, setWalletKit] = useState(null);
+  const [walletInitialized, setWalletInitialized] = useState(false); // Flag to track initialization
   
-  // Make wallet context available globally for ConnectWalletModal
+  // Initialize Stellar Wallets Kit - only run once with a simpler approach
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.walletContext = { 
-        setWallet: (newWallet) => {
-          console.log('Setting wallet from global context:', newWallet);
-          setWallet(newWallet);
-          
-          // Save wallet to localStorage for persistence
-          try {
-            localStorage.setItem('eazeWallet', JSON.stringify(newWallet));
-          } catch (err) {
-            console.error('Error saving wallet to localStorage:', err);
-          }
-        },
-        getWallet: () => wallet
-      };
-    }
-  }, [wallet]);
-  
-  // Load wallet from localStorage on initial load
-  useEffect(() => {
+    // Skip if already initialized or if we already have a wallet kit
+    if (walletInitialized || walletKit) return;
+    
     try {
+      console.log('Initializing Stellar Wallets Kit with simplified approach...');
+      
+      // Use the simpler allowAllModules approach but with auto-connect disabled
+      // This should be more reliable than manually specifying modules
+      const kit = new StellarWalletsKit({
+        network: WalletNetwork.TESTNET,
+        modules: allowAllModules(),
+        selectedWalletId: ALBEDO_ID, // Default to Albedo to avoid undefined wallet ID
+        autoAllowDirect: false,
+      });
+      
+      // Mark as initialized to prevent multiple initializations
+      setWalletInitialized(true);
+      
+      // Clear any existing Freighter wallet data from localStorage
+      try {
+        const savedWallet = localStorage.getItem('eazeWallet');
+        if (savedWallet) {
+          const parsedWallet = JSON.parse(savedWallet);
+          if (parsedWallet.walletId === FREIGHTER_ID) {
+            console.log('Found Freighter wallet in localStorage, removing to prevent auto-connection');
+            localStorage.removeItem('eazeWallet');
+          }
+        }
+      } catch (localStorageErr) {
+        console.warn('Error checking localStorage:', localStorageErr);
+      }
+      
+      console.log('Stellar Wallets Kit initialized with auto-connect disabled and Freighter excluded');
+      setWalletKit(kit);
+      
+      // Make wallet context and kit available globally for ConnectWalletModal
+      if (typeof window !== 'undefined') {
+        window.walletContext = { 
+          setWallet: (newWallet) => {
+            console.log('Setting wallet from global context:', newWallet);
+            
+            // Update the wallet state
+            setWallet(newWallet);
+            
+            // Save wallet to localStorage for persistence if not null
+            try {
+              if (newWallet) {
+                localStorage.setItem('eazeWallet', JSON.stringify(newWallet));
+              } else {
+                localStorage.removeItem('eazeWallet');
+              }
+            } catch (err) {
+              console.error('Error managing wallet in localStorage:', err);
+            }
+          },
+          getWallet: () => wallet,
+          getWalletKit: () => kit,
+          walletKit: kit // Directly expose the kit instance
+        };
+      }
+    } catch (err) {
+      console.error('Error initializing Stellar Wallets Kit:', err);
+      setError('Failed to initialize wallet connection system');
+    }
+  }, [walletInitialized, wallet]);
+  
+  // Load wallet from localStorage on initial load - only when walletKit is available
+  useEffect(() => {
+    // Skip if no wallet kit or if we already have a wallet
+    if (!walletKit || wallet) return;
+    
+    try {
+      console.log('Attempting to load wallet from localStorage...');
       const savedWallet = localStorage.getItem('eazeWallet');
-      if (savedWallet) {
-        const parsedWallet = JSON.parse(savedWallet);
-        console.log('Loaded wallet from localStorage:', parsedWallet);
-        setWallet(parsedWallet);
+      
+      if (!savedWallet) {
+        console.log('No wallet found in localStorage');
+        return;
+      }
+      
+      const parsedWallet = JSON.parse(savedWallet);
+      console.log('Loaded wallet from localStorage:', parsedWallet);
+      
+      // Check if this is a Freighter wallet - don't auto-connect it
+      if (parsedWallet.walletId === FREIGHTER_ID) {
+        console.log('Freighter wallet detected - skipping auto-connection');
+        // Don't set the wallet in state to prevent auto-connection
+        // We'll still show the wallet in the UI, but not auto-connect it
+        setWallet({
+          ...parsedWallet,
+          connected: false, // Mark as not connected to prevent auto-connection
+          needsReconnect: true // Flag that this wallet needs manual reconnection
+        });
+        return;
+      }
+      
+      // For other wallet types, proceed with auto-connection
+      console.log('Non-Freighter wallet found, proceeding with auto-connection');
+      setWallet(parsedWallet);
+      
+      // If we have a wallet and the kit is initialized, set the wallet in the kit
+      // but only for non-Freighter wallets
+      if (parsedWallet.walletId && parsedWallet.walletId !== FREIGHTER_ID) {
+        console.log(`Setting wallet ID in kit: ${parsedWallet.walletId}`);
+        try {
+          walletKit.setWallet(parsedWallet.walletId);
+        } catch (setWalletErr) {
+          console.warn('Error setting wallet in kit:', setWalletErr);
+        }
       }
     } catch (err) {
       console.error('Error loading wallet from localStorage:', err);
     }
+  }, [walletKit, wallet]); // Only run when walletKit changes or wallet is null
+  
+  // Add a listener for wallet connection events
+  useEffect(() => {
+    const handleWalletConnected = (event) => {
+      console.log('Wallet connected event received:', event.detail);
+      // Update the wallet state
+      setWallet(event.detail);
+    };
+    
+    // Add event listener
+    window.addEventListener('walletConnected', handleWalletConnected);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('walletConnected', handleWalletConnected);
+    };
   }, []);
 
-  // Get wallet
+  // Get wallet - safely retrieves the current wallet or creates a new one if needed
   const getWallet = async () => {
     try {
       setLoading(true);
       
-      // Generate a proper Stellar keypair
-      const keypair = StellarSdk.Keypair.random();
-      const publicKey = keypair.publicKey();
-      const secretKey = keypair.secret();
+      // If we already have a wallet, just return it
+      if (wallet) {
+        console.log('Using existing wallet:', wallet.address);
+        setLoading(false);
+        return wallet;
+      }
       
-      console.log('Generated valid Stellar keypair');
-      console.log('Public Key (address):', publicKey);
-      // Never log the secret key in production!
+      // Check if we have a wallet in localStorage
+      const savedWallet = localStorage.getItem('eazeWallet');
+      if (savedWallet) {
+        try {
+          const parsedWallet = JSON.parse(savedWallet);
+          console.log('Retrieved wallet from localStorage:', parsedWallet.address);
+          setWallet(parsedWallet);
+          setLoading(false);
+          return parsedWallet;
+        } catch (err) {
+          console.error('Error parsing wallet from localStorage:', err);
+        }
+      }
       
-      const newWallet = {
-        id: 'wallet_' + Math.random().toString(36).substring(2, 10),
-        address: publicKey,
-        secret: secretKey, // Store this securely in a real app
-        type: 'stellar',
-        name: wallet?.name || 'Default Wallet',
-        connected: true,
-        createdAt: new Date().toISOString()
-      };
-      
-      setWallet(newWallet);
-      setLoading(false);
-      return newWallet;
+      // Generate a new wallet for the user if they don't have one yet
+      console.log('No existing wallet found, generating a new one...');
+      try {
+        // Generate a new random Stellar keypair
+        const keypair = StellarSdk.Keypair.random();
+        const newWallet = {
+          address: keypair.publicKey(),
+          secret: keypair.secret(),
+          walletId: 'EAZEFI_AUTO_GENERATED', // Mark as auto-generated
+          connected: true,
+          type: 'auto-generated'
+        };
+        
+        console.log('Generated new wallet with address:', newWallet.address);
+        
+        // Save to localStorage for persistence
+        localStorage.setItem('eazeWallet', JSON.stringify(newWallet));
+        
+        // Update state
+        setWallet(newWallet);
+        setLoading(false);
+        return newWallet;
+      } catch (genErr) {
+        console.error('Error generating new wallet:', genErr);
+        setLoading(false);
+        return null;
+      }
     } catch (err) {
       console.error('Error getting wallet:', err);
       setError('Error fetching wallet');
@@ -96,78 +237,27 @@ export const WalletProvider = ({ children }) => {
         return [];
       }
       
-      console.log('Fetching real balance for wallet:', wallet.address);
+      // Get balance from Stellar Horizon API
+      const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
+      const account = await server.loadAccount(wallet.address);
       
-      // Use direct Horizon API call to avoid potential SDK issues
-      try {
-        const response = await axios.get(`https://horizon-testnet.stellar.org/accounts/${wallet.address}`);
-        const account = response.data;
-        
-        console.log('Account loaded successfully:', account.id);
-        console.log('Raw balances from Stellar:', account.balances);
-        
-        // Process balances
-        const stellarBalances = account.balances.map(balance => {
-          // Native XLM balance
-          if (balance.asset_type === 'native') {
-            return {
-              asset: 'XLM',
-              amount: parseFloat(balance.balance).toFixed(2),
-              value_usd: (parseFloat(balance.balance) * 0.15).toFixed(2) // Approximate USD value
-            };
-          }
-          // Other assets
-          return {
-            asset: balance.asset_code || balance.asset_type,
-            amount: parseFloat(balance.balance).toFixed(2),
-            value_usd: (parseFloat(balance.balance) * 1).toFixed(2) // Assume 1:1 for other assets
-          };
-        });
-        
-        console.log('Processed balances:', stellarBalances);
-        setBalances(stellarBalances);
-        setLoading(false);
-        return stellarBalances;
-      } catch (error) {
-        console.error('Error fetching account:', error);
-        
-        // Check if this is a "not found" error (account doesn't exist)
-        if (error.response && error.response.status === 404) {
-          console.log('Account not found on Stellar network. Wallet may not be funded yet.');
-          
-          // Return empty balance for new/unfunded accounts
-          const emptyBalance = [
-            {
-              asset: 'XLM',
-              amount: '0.00',
-              value_usd: '0.00'
-            }
-          ];
-          
-          setBalances(emptyBalance);
-          setLoading(false);
-          return emptyBalance;
-        }
-        
-        // For other errors, fall back to mock data
-        console.log('Error accessing Stellar network, falling back to mock data');
-        const mockBalances = [
-          {
-            asset: 'XLM',
-            amount: (Math.random() * 1000).toFixed(2),
-            value_usd: (Math.random() * 500).toFixed(2)
-          },
-          {
-            asset: 'USDC',
-            amount: (Math.random() * 500).toFixed(2),
-            value_usd: (Math.random() * 500).toFixed(2)
-          }
-        ];
-        
-        setBalances(mockBalances);
-        setLoading(false);
-        return mockBalances;
-      }
+      // Format balances
+      const formattedBalances = account.balances.map(balance => {
+        return {
+          asset: balance.asset_type === 'native' ? 'XLM' : `${balance.asset_code}:${balance.asset_issuer}`,
+          balance: parseFloat(balance.balance),
+          limit: balance.limit ? parseFloat(balance.limit) : null,
+          buyingLiabilities: balance.buying_liabilities ? parseFloat(balance.buying_liabilities) : 0,
+          sellingLiabilities: balance.selling_liabilities ? parseFloat(balance.selling_liabilities) : 0,
+          assetType: balance.asset_type,
+          assetCode: balance.asset_code || 'XLM',
+          assetIssuer: balance.asset_issuer || 'native',
+        };
+      });
+      
+      setBalances(formattedBalances);
+      setLoading(false);
+      return formattedBalances;
     } catch (err) {
       console.error('Error getting balance:', err);
       setError('Error fetching balance');
@@ -176,650 +266,17 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
-  // Fund wallet
-  const fundWallet = async (fundData) => {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
-    try {
-      setLoading(true);
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/wallets/fund`,
-        fundData,
-        config
-      );
-      
-      setWallet(res.data.wallet);
-      await getBalance();
-      setLoading(false);
-      return res.data;
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Error funding wallet');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Withdraw from wallet
-  const withdrawFromWallet = async (withdrawData) => {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
-    try {
-      setLoading(true);
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/wallets/withdraw`,
-        withdrawData,
-        config
-      );
-      
-      setWallet(res.data.wallet);
-      await getBalance();
-      setLoading(false);
-      return res.data;
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Error withdrawing from wallet');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Swap currencies
-  const swapCurrencies = async (swapData) => {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
-    try {
-      setLoading(true);
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/wallets/swap`,
-        swapData,
-        config
-      );
-      
-      setWallet(res.data.wallet);
-      await getBalance();
-      setLoading(false);
-      return res.data;
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Error swapping currencies');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Send remittance
-  const sendRemittance = async (remittanceData) => {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
-    try {
-      setLoading(true);
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/remittances/send`,
-        remittanceData,
-        config
-      );
-      
-      // Update balances after sending remittance
-      await getBalance();
-      setLoading(false);
-      return res.data;
-    } catch (err) {
-      setError(err.response?.data?.msg || 'Error sending remittance');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Get user's remittances
-  const getUserRemittances = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/remittances`);
-      setRemittances(res.data);
-      setLoading(false);
-      return res.data;
-    } catch (err) {
-      console.error('Error getting remittances:', err.response?.data || err.message);
-      setError(err.response?.data?.msg || 'Error fetching remittances');
-      setLoading(false);
-      return [];
-    }
-  };
-
-  // Get remittance by ID
-  const getRemittanceById = async (id) => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${process.env.REACT_APP_API_URL}/remittances/${id}`);
-      setLoading(false);
-      return res.data;
-    } catch (err) {
-      console.error('Error getting remittance:', err.response?.data || err.message);
-      setError(err.response?.data?.msg || 'Error fetching remittance');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Create family pool
-  const createFamilyPool = async (poolData) => {
-    try {
-      setLoading(true);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create a new mock family pool
-      const newPool = {
-        id: 'pool_' + Math.random().toString(36).substring(2, 8),
-        name: poolData.name,
-        description: poolData.description,
-        token: poolData.token,
-        createdAt: new Date().toISOString(),
-        createdBy: 'user_123', // Current user ID
-        isActive: true,
-        withdrawalLimit: poolData.withdrawalLimit,
-        withdrawalPeriod: poolData.withdrawalPeriod,
-        contributions: [],
-        withdrawals: []
-      };
-      
-      // Update family pools list by adding the new pool
-      const updatedPools = [...familyPools, newPool];
-      setFamilyPools(updatedPools);
-      
-      setLoading(false);
-      return { pool: newPool, success: true };
-    } catch (err) {
-      console.error('Error creating family pool:', err);
-      setError('Error creating family pool');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Contribute to family pool
-  const contributeToPool = async (poolId, amount) => {
-    try {
-      setLoading(true);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find the pool to contribute to
-      const updatedPools = familyPools.map(pool => {
-        if (pool.id === poolId) {
-          // Create a new contribution
-          const newContribution = {
-            id: 'contrib_' + Math.random().toString(36).substring(2, 8),
-            contributorId: 'user_123', // Current user ID
-            contributorName: 'David Machuche', // Current user name
-            amount: amount,
-            createdAt: new Date().toISOString()
-          };
-          
-          // Add the contribution to the pool
-          return {
-            ...pool,
-            contributions: [...pool.contributions, newContribution]
-          };
-        }
-        return pool;
-      });
-      
-      setFamilyPools(updatedPools);
-      
-      // Update balances
-      await getBalance();
-      
-      setLoading(false);
-      return { success: true };
-    } catch (err) {
-      console.error('Error contributing to family pool:', err);
-      setError('Error contributing to family pool');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Withdraw from family pool
-  const withdrawFromPool = async (poolId, amount, reason) => {
-    try {
-      setLoading(true);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find the pool to withdraw from
-      const updatedPools = familyPools.map(pool => {
-        if (pool.id === poolId) {
-          // Check if withdrawal is allowed based on limit
-          const totalWithdrawn = pool.withdrawals.reduce(
-            (sum, w) => sum + parseFloat(w.amount), 0
-          );
-          
-          const withdrawalLimit = parseFloat(pool.withdrawalLimit);
-          
-          if (totalWithdrawn + parseFloat(amount) > withdrawalLimit) {
-            throw new Error(`Withdrawal exceeds the limit of ${withdrawalLimit} ${pool.token} per ${pool.withdrawalPeriod}`);
-          }
-          
-          // Create a new withdrawal
-          const newWithdrawal = {
-            id: 'withdraw_' + Math.random().toString(36).substring(2, 8),
-            withdrawerId: 'user_123', // Current user ID
-            withdrawerName: 'David Machuche', // Current user name
-            amount: amount,
-            reason: reason || 'General withdrawal',
-            createdAt: new Date().toISOString()
-          };
-          
-          // Add the withdrawal to the pool
-          return {
-            ...pool,
-            withdrawals: [...pool.withdrawals, newWithdrawal]
-          };
-        }
-        return pool;
-      });
-      
-      setFamilyPools(updatedPools);
-      
-      // Update balances
-      await getBalance();
-      
-      setLoading(false);
-      return { success: true };
-    } catch (err) {
-      console.error('Error withdrawing from family pool:', err);
-      setError(err.message || 'Error withdrawing from family pool');
-      setLoading(false);
-      return null;
-    }
-  };
-
-  // Get family pools
-  const getFamilyPools = async () => {
-    try {
-      setLoading(true);
-      
-      // Mock family pools data
-      const mockFamilyPools = [
-        {
-          id: 'pool_1',
-          name: 'Family Emergency Fund',
-          description: 'For unexpected medical expenses and emergencies',
-          token: 'USDC',
-          createdAt: '2025-01-15T10:30:00Z',
-          createdBy: 'user_123',
-          isActive: true,
-          withdrawalLimit: '500',
-          withdrawalPeriod: 'month',
-          contributions: [
-            {
-              id: 'contrib_1',
-              contributorId: 'user_123',
-              contributorName: 'David Machuche',
-              amount: '200',
-              createdAt: '2025-01-15T14:20:00Z'
-            },
-            {
-              id: 'contrib_2',
-              contributorId: 'user_456',
-              contributorName: 'Sarah Johnson',
-              amount: '150',
-              createdAt: '2025-01-18T09:45:00Z'
-            },
-            {
-              id: 'contrib_3',
-              contributorId: 'user_789',
-              contributorName: 'Michael Chen',
-              amount: '300',
-              createdAt: '2025-02-05T16:30:00Z'
-            }
-          ],
-          withdrawals: [
-            {
-              id: 'withdraw_1',
-              withdrawerId: 'user_123',
-              withdrawerName: 'David Machuche',
-              amount: '100',
-              reason: 'Medical checkup',
-              createdAt: '2025-02-10T11:20:00Z'
-            }
-          ]
-        },
-        {
-          id: 'pool_2',
-          name: 'Education Fund',
-          description: 'For school fees and educational materials',
-          token: 'XLM',
-          createdAt: '2025-02-01T08:15:00Z',
-          createdBy: 'user_123',
-          isActive: true,
-          withdrawalLimit: '1000',
-          withdrawalPeriod: 'quarter',
-          contributions: [
-            {
-              id: 'contrib_4',
-              contributorId: 'user_123',
-              contributorName: 'David Machuche',
-              amount: '500',
-              createdAt: '2025-02-01T09:30:00Z'
-            },
-            {
-              id: 'contrib_5',
-              contributorId: 'user_456',
-              contributorName: 'Sarah Johnson',
-              amount: '750',
-              createdAt: '2025-02-15T14:20:00Z'
-            }
-          ],
-          withdrawals: []
-        },
-        {
-          id: 'pool_3',
-          name: 'Wedding Fund',
-          description: 'For upcoming family wedding expenses',
-          token: 'USDC',
-          createdAt: '2024-11-20T16:45:00Z',
-          createdBy: 'user_789',
-          isActive: false,
-          withdrawalLimit: '2000',
-          withdrawalPeriod: 'event',
-          contributions: [
-            {
-              id: 'contrib_6',
-              contributorId: 'user_123',
-              contributorName: 'David Machuche',
-              amount: '400',
-              createdAt: '2024-11-25T10:15:00Z'
-            },
-            {
-              id: 'contrib_7',
-              contributorId: 'user_456',
-              contributorName: 'Sarah Johnson',
-              amount: '350',
-              createdAt: '2024-12-05T13:40:00Z'
-            },
-            {
-              id: 'contrib_8',
-              contributorId: 'user_789',
-              contributorName: 'Michael Chen',
-              amount: '600',
-              createdAt: '2024-12-20T09:30:00Z'
-            }
-          ],
-          withdrawals: [
-            {
-              id: 'withdraw_2',
-              withdrawerId: 'user_789',
-              withdrawerName: 'Michael Chen',
-              amount: '1200',
-              reason: 'Venue booking',
-              createdAt: '2025-01-10T15:20:00Z'
-            }
-          ]
-        },
-        {
-          id: 'pool_4',
-          name: 'Tanzania Business Fund',
-          description: 'For supporting family business initiatives in Tanzania',
-          token: 'TSHT',
-          createdAt: '2025-03-10T09:00:00Z',
-          createdBy: 'user_123',
-          isActive: true,
-          withdrawalLimit: '50000',
-          withdrawalPeriod: 'month',
-          contributions: [
-            {
-              id: 'contrib_9',
-              contributorId: 'user_123',
-              contributorName: 'David Machuche',
-              amount: '25000',
-              createdAt: '2025-03-10T10:15:00Z'
-            },
-            {
-              id: 'contrib_10',
-              contributorId: 'user_456',
-              contributorName: 'Sarah Johnson',
-              amount: '15000',
-              createdAt: '2025-03-12T14:30:00Z'
-            }
-          ],
-          withdrawals: [
-            {
-              id: 'withdraw_3',
-              withdrawerId: 'user_123',
-              withdrawerName: 'David Machuche',
-              amount: '10000',
-              reason: 'Business supplies',
-              createdAt: '2025-03-15T16:45:00Z'
-            }
-          ]
-        }
-      ];
-      
-      setFamilyPools(mockFamilyPools);
-      setLoading(false);
-      return mockFamilyPools;
-    } catch (err) {
-      console.error('Error getting family pools:', err);
-      setError('Error fetching family pools');
-      setLoading(false);
-      return [];
-    }
-  };
-
-  // Send crypto to M-Pesa
-  const sendCryptoToMpesa = async (mpesaData) => {
-    try {
-      setLoading(true);
-      
-      // In a real implementation, this would call the backend API
-      // const res = await axios.post(`${process.env.REACT_APP_API_URL}/mpesa/send`, mpesaData);
-      
-      // For demo purposes, we'll simulate a successful API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Create a mock remittance record
-      const newRemittance = {
-        id: 'mpesa_' + Math.random().toString(36).substring(2, 8),
-        sender: 'user_123', // Current user ID
-        senderName: 'David Machuche',
-        recipientPhone: mpesaData.recipientPhone,
-        recipientName: mpesaData.recipientName,
-        amount: mpesaData.amount,
-        currency: mpesaData.sourceCurrency,
-        targetAmount: mpesaData.targetAmount,
-        targetCurrency: 'TZS',
-        status: 'processing',
-        type: 'mpesa',
-        createdAt: new Date().toISOString(),
-        notes: mpesaData.notes || '',
-        insurance: mpesaData.insurance || false,
-        transactionId: 'tx_' + Math.random().toString(36).substring(2, 10)
-      };
-      
-      // Update remittances list
-      setRemittances([newRemittance, ...remittances]);
-      
-      // Update balances (deduct the sent amount + fees)
-      await getBalance();
-      
-      setLoading(false);
-      return { success: true, remittance: newRemittance };
-    } catch (err) {
-      console.error('Error sending crypto to M-Pesa:', err.response?.data || err.message);
-      setError(err.response?.data?.msg || 'Error sending crypto to M-Pesa');
-      setLoading(false);
-      return { success: false, error: err.response?.data?.msg || 'Error sending crypto to M-Pesa' };
-    }
-  };
-  
-  // Check M-Pesa remittance status
-  const checkMpesaRemittanceStatus = async (remittanceId) => {
-    try {
-      setLoading(true);
-      
-      // In a real implementation, this would call the backend API
-      // const res = await axios.get(`${process.env.REACT_APP_API_URL}/mpesa/status/${remittanceId}`);
-      
-      // For demo purposes, we'll simulate a successful API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find the remittance to update
-      const updatedRemittances = remittances.map(remittance => {
-        if (remittance.id === remittanceId) {
-          // Randomly set status to either 'completed' or 'processing'
-          const newStatus = Math.random() > 0.5 ? 'completed' : 'processing';
-          return {
-            ...remittance,
-            status: newStatus,
-            lastChecked: new Date().toISOString()
-          };
-        }
-        return remittance;
-      });
-      
-      setRemittances(updatedRemittances);
-      
-      const updatedRemittance = updatedRemittances.find(r => r.id === remittanceId);
-      
-      setLoading(false);
-      return { success: true, status: updatedRemittance.status };
-    } catch (err) {
-      console.error('Error checking M-Pesa remittance status:', err.response?.data || err.message);
-      setError(err.response?.data?.msg || 'Error checking remittance status');
-      setLoading(false);
-      return { success: false, error: err.response?.data?.msg || 'Error checking remittance status' };
-    }
-  };
-
-  // Clear errors
-  const clearErrors = () => setError(null);
-
+  // Only fetch data when authenticated and not during initial load
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      getWallet();
+    // Only proceed if we don't already have a wallet and we're authenticated
+    if (isAuthenticated && !authLoading && !wallet) {
+      // Don't automatically generate a wallet - this was causing the infinite loop
+      // getWallet(); // Removed to prevent infinite loop of random keypair generation
+      
+      // These functions are safe to call
       getBalance();
-      getUserRemittances();
-      getFamilyPools();
     }
-    // eslint-disable-next-line
-  }, [isAuthenticated, authLoading]);
-
-  // Get wallet transactions
-  const getTransactions = async () => {
-    try {
-      setLoading(true);
-      
-      // Check if wallet is connected
-      if (!wallet || !wallet.address) {
-        setError('No wallet connected');
-        setLoading(false);
-        return [];
-      }
-      
-      // Try to get real transactions from Stellar network
-      try {
-        console.log('Fetching transactions for wallet:', wallet.address);
-        
-        // Initialize Stellar SDK with proper network
-        const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
-        StellarSdk.Network.useTestNetwork();
-        
-        // Fetch transactions for the account
-        const stellarTransactions = await server.transactions()
-          .forAccount(wallet.address)
-          .limit(10)
-          .order('desc')
-          .call();
-        
-        console.log('Fetched transactions:', stellarTransactions);
-        
-        // Process transactions into a more usable format
-        const processedTransactions = stellarTransactions.records.map(tx => {
-          return {
-            id: tx.id,
-            type: 'payment',
-            hash: tx.hash,
-            ledger: tx.ledger,
-            created_at: tx.created_at,
-            source_account: tx.source_account,
-            fee_paid: tx.fee_paid,
-            memo_type: tx.memo_type,
-            memo: tx.memo || '',
-            status: 'success'
-          };
-        });
-        
-        setTransactions(processedTransactions);
-        setLoading(false);
-        return processedTransactions;
-      } catch (stellarError) {
-        console.error('Error fetching transactions from Stellar network:', stellarError);
-        console.log('Falling back to mock transaction data');
-        
-        // Fallback to mock data if Stellar network request fails
-        const mockTransactions = [
-          {
-            id: '1',
-            type: 'payment',
-            amount: '50.00',
-            asset: 'XLM',
-            date: new Date().toISOString(),
-            from: wallet.address.substring(0, 4) + '...' + wallet.address.substring(wallet.address.length - 4),
-            to: 'GDLP...X3PZ',
-            status: 'success'
-          },
-          {
-            id: '2',
-            type: 'deposit',
-            amount: '200.00',
-            asset: 'USDC',
-            date: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-            from: 'External',
-            to: wallet.address.substring(0, 4) + '...' + wallet.address.substring(wallet.address.length - 4),
-            status: 'success'
-          },
-          {
-            id: '3',
-            type: 'withdrawal',
-            amount: '0.005',
-            asset: 'BTC',
-            date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-            from: wallet.address.substring(0, 4) + '...' + wallet.address.substring(wallet.address.length - 4),
-            to: 'GAKL...R7PQ',
-            status: 'success'
-          }
-        ];
-        
-        setTransactions(mockTransactions);
-        setLoading(false);
-        return mockTransactions;
-      }
-    } catch (err) {
-      console.error('Error getting transactions:', err);
-      setError('Error fetching transactions');
-      setLoading(false);
-      return [];
-    }
-  };
+  }, [isAuthenticated, authLoading, wallet]);
 
   return (
     <WalletContext.Provider
@@ -831,22 +288,10 @@ export const WalletProvider = ({ children }) => {
         familyPools,
         loading,
         error,
+        setWallet,
         getWallet,
         getBalance,
-        getTransactions,
-        fundWallet,
-        withdrawFromWallet,
-        swapCurrencies,
-        sendRemittance,
-        getUserRemittances,
-        getRemittanceById,
-        createFamilyPool,
-        contributeToPool,
-        withdrawFromPool,
-        getFamilyPools,
-        sendCryptoToMpesa,
-        checkMpesaRemittanceStatus,
-        clearErrors
+        walletKit
       }}
     >
       {children}

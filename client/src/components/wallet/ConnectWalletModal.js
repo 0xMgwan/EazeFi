@@ -3,6 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { FaTimes, FaExternalLinkAlt, FaChevronRight, FaSpinner, FaWallet } from 'react-icons/fa';  
 import StellarSdk from 'stellar-sdk';
 import { WalletContext } from '../../context/WalletContext';
+import { 
+  StellarWalletsKit, 
+  WalletNetwork, 
+  allowAllModules,
+  ALBEDO_ID,
+  FREIGHTER_ID,
+  XBULL_ID,
+  LOBSTR_ID,
+  AlbedoModule,
+  FreighterModule,
+  LobstrModule,
+  xBullModule
+} from '@creit.tech/stellar-wallets-kit';
 
 // Use real wallet icons from direct sources
 const albedoIcon = 'https://albedo.link/img/logo.png';
@@ -21,7 +34,8 @@ if (typeof window !== 'undefined' && !window.freighter) {
 
 const ConnectWalletModal = ({ isOpen, onClose, onConnect }) => {
   const navigate = useNavigate();
-  const { setWallet } = useContext(WalletContext);
+  const walletContext = useContext(WalletContext);
+  const { setWallet, connectWalletWithKit, walletKit } = walletContext;
   const [connecting, setConnecting] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [error, setError] = useState(null);
@@ -39,80 +53,39 @@ const ConnectWalletModal = ({ isOpen, onClose, onConnect }) => {
     server = null;
   }
   
-  // Reset state when modal opens and check for wallet extensions
+  // Initialize Stellar Wallets Kit if not available from context
+  const [localWalletKit, setLocalWalletKit] = useState(null);
+  
+  useEffect(() => {
+    if (!walletKit && !localWalletKit) {
+      try {
+        // Initialize with specific modules and a default selected wallet ID
+        // The key issue was missing the selectedWalletId parameter
+        const kit = new StellarWalletsKit({
+          network: WalletNetwork.TESTNET,
+          // Set a default selected wallet ID to avoid the "undefined" error
+          selectedWalletId: ALBEDO_ID,
+          modules: [
+            new AlbedoModule(),
+            new FreighterModule(),
+            new LobstrModule(),
+            new xBullModule()
+          ]
+        });
+        setLocalWalletKit(kit);
+        console.log('Initialized local Stellar Wallets Kit instance with specific modules and default wallet');
+      } catch (err) {
+        console.error('Error initializing local Stellar Wallets Kit:', err);
+      }
+    }
+  }, [walletKit, localWalletKit]);
+  
+  // Reset state when modal opens
   useEffect(() => {
     setConnecting(false);
     setSelectedWallet(null);
     setError(null);
     setSuccess(false);
-    
-    // Check for wallet extensions
-    const checkWalletExtensions = async () => {
-        try {
-          // Create a more reliable detection mechanism
-          const detectWallets = async () => {
-            const walletStatus = {
-              freighter: false,
-              albedo: false,
-              xbull: false,
-              lobstr: false
-            };
-            
-            // Check for Freighter
-            if (window.freighter || (window.stellar && window.stellar.freighter)) {
-              walletStatus.freighter = true;
-            }
-            
-            // Check for Albedo
-            if (window.albedo || document.querySelector('script[src*="albedo"]')) {
-              walletStatus.albedo = true;
-            } else {
-              // Try to load Albedo dynamically
-              try {
-                await new Promise((resolve) => {
-                  const script = document.createElement('script');
-                  script.src = 'https://albedo.link/albedo-intent.js';
-                  script.onload = resolve;
-                  script.onerror = resolve; // Still resolve to continue checking
-                  document.head.appendChild(script);
-                  setTimeout(resolve, 1000); // Timeout after 1 second
-                });
-                walletStatus.albedo = typeof window.albedo !== 'undefined';
-              } catch (e) {
-                console.warn('Failed to load Albedo:', e);
-              }
-            }
-            
-            return walletStatus;
-          };
-          
-          const walletStatus = await detectWallets();
-          console.log('Detected wallet extensions:', walletStatus);
-          
-          // Check Freighter
-          const hasFreighter = 
-            typeof window !== 'undefined' && 
-            (window.freighter || 
-             (window.stellar && window.stellar.freighter) ||
-             document.querySelector('head > meta[name="freighter"]'));
-          
-          console.log('Freighter detection result:', hasFreighter);
-          
-          // Check Albedo
-          const hasAlbedo = typeof window !== 'undefined' && window.albedo;
-          console.log('Albedo detection result:', hasAlbedo);
-          
-          // Check XBull (if there's a specific way to detect it)
-          // This would need to be implemented based on XBull's API
-          
-          // Check Lobstr (if there's a specific way to detect it)
-          // This would need to be implemented based on Lobstr's API
-        } catch (err) {
-          console.error('Error checking for wallet extensions:', err);
-        }
-      };
-    
-    checkWalletExtensions();
   }, []);
   
   // Helper function to create a mock wallet for development testing
@@ -562,86 +535,181 @@ const ConnectWalletModal = ({ isOpen, onClose, onConnect }) => {
   };
 
   const handleConnectWallet = async (walletName) => {
-    console.log(`Connecting to ${walletName}...`);
+    console.log(`Connecting to ${walletName} using Stellar Wallets Kit...`);
     setConnecting(true);
     setSelectedWallet(walletName);
     setError(null);
     setSuccess(false);
     
-    // Force reload wallet detection
-    if (walletName === 'Albedo' && typeof window.albedo === 'undefined') {
-      try {
-        console.log('Attempting to load Albedo dynamically before connection...');
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://albedo.link/albedo-intent.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-        console.log('Albedo script loaded successfully');
-      } catch (loadError) {
-        console.warn('Failed to load Albedo:', loadError);
-      }
-    }
-    
-    let result = { success: false, error: 'Not implemented' };
-    
     try {
-      // Connect to the selected wallet
+      // Map wallet name to wallet ID for Stellar Wallets Kit
+      let walletId;
       switch (walletName) {
-        case 'Freighter':
-          result = await connectFreighterWallet();
-          break;
         case 'Albedo':
-          result = await connectAlbedoWallet();
+          walletId = ALBEDO_ID;
+          break;
+        case 'Freighter':
+          walletId = FREIGHTER_ID;
           break;
         case 'Lobstr':
-          result = await connectLobstrWallet();
+          walletId = LOBSTR_ID;
           break;
         case 'Xbull':
-          result = await connectXbullWallet();
+          walletId = XBULL_ID;
           break;
         default:
-          result = { success: false, error: 'Wallet not supported' };
+          throw new Error(`Unsupported wallet: ${walletName}`);
       }
       
-      if (result.success) {
-        // Show success notification
-        let shortPublicKey = 'Unknown';
+      // Get the wallet kit from context, local state, or global context
+      let kit = walletKit || localWalletKit;
+      if (!kit && window.walletContext && window.walletContext.getWalletKit) {
+        kit = window.walletContext.getWalletKit();
+      }
+      
+      // Special handling for Freighter wallet
+      if (walletName === 'Freighter') {
+        console.log('Freighter wallet selected - ensuring Freighter module is added');
         
-        try {
-          if (result.publicKey && typeof result.publicKey === 'string') {
-            if (result.publicKey.length >= 10) {
-              // Use slice instead of substring for better safety
-              const firstPart = result.publicKey.slice(0, 5);
-              const lastPart = result.publicKey.slice(-5);
-              shortPublicKey = `${firstPart}...${lastPart}`;
-            } else {
-              shortPublicKey = result.publicKey; // Use as is if it's too short
+        // Check if we need to add the Freighter module
+        let needToAddFreighterModule = true;
+        
+        // Check if the kit already has the Freighter module
+        if (kit && kit.modules) {
+          try {
+            const hasFreighter = kit.modules.some(module => 
+              module.constructor.name === 'FreighterModule' || 
+              (module.id && module.id === FREIGHTER_ID)
+            );
+            if (hasFreighter) {
+              console.log('Freighter module already present in kit');
+              needToAddFreighterModule = false;
             }
+          } catch (err) {
+            console.warn('Error checking for Freighter module:', err);
           }
-        } catch (error) {
-          console.error('Error formatting public key:', error);
         }
         
-        console.log(`Successfully connected to ${walletName}!\nPublic Key: ${shortPublicKey}`);
-        setSuccess(true);
-        
-        // Set a timeout to show success message before redirecting
-        setTimeout(() => {
-          setConnecting(false);
-          onClose();
-          
-          // Redirect to dashboard after successful connection
-          console.log('Redirecting to dashboard...');
-          navigate('/dashboard');
-        }, 1500);
-      } else {
-        console.error(`Failed to connect to ${walletName}: ${result.error || 'Unknown error'}`);
-        setError(result.error || `Failed to connect to ${walletName}`);
-        setConnecting(false);
+        // If we need to add the Freighter module, create a new kit with it
+        if (needToAddFreighterModule) {
+          console.log('Adding Freighter module to wallet kit');
+          try {
+            // Create a new kit with the Freighter module included
+            const newKit = new StellarWalletsKit({
+              network: WalletNetwork.TESTNET,
+              selectedWalletId: FREIGHTER_ID,
+              modules: [
+                new FreighterModule(),
+                new AlbedoModule(),
+                new LobstrModule(),
+                new xBullModule()
+              ],
+              autoAllowDirect: false,
+              disableAutoConnect: true
+            });
+            
+            // Update the kit references
+            setLocalWalletKit(newKit);
+            kit = newKit;
+            console.log('Created new wallet kit with Freighter module');
+          } catch (err) {
+            console.error('Error creating new kit with Freighter:', err);
+          }
+        }
+      } else if (!kit) {
+        // For non-Freighter wallets, create a kit without Freighter module if none exists
+        console.log(`Creating new Stellar Wallets Kit instance for ${walletName}`);
+        const newKit = new StellarWalletsKit({
+          network: WalletNetwork.TESTNET,
+          selectedWalletId: walletId,
+          modules: [
+            new AlbedoModule(),
+            new LobstrModule(),
+            new xBullModule()
+            // Freighter module intentionally excluded to prevent auto-connection
+          ],
+          autoAllowDirect: false,
+          disableAutoConnect: true
+        });
+        setLocalWalletKit(newKit);
+        kit = newKit;
       }
+      
+      // Set the selected wallet - this is the key step that was causing the error
+      console.log(`Setting wallet ID to: ${walletId}`);
+      kit.setWallet(walletId);
+      
+      // Get the wallet address
+      const { address } = await kit.getAddress();
+      
+      if (!address) {
+        throw new Error('Failed to get wallet address');
+      }
+      
+      // Format the address for display
+      const shortAddress = address.length > 10 
+        ? `${address.slice(0, 5)}...${address.slice(-5)}` 
+        : address;
+      
+      console.log(`Successfully connected to ${walletName}!\nPublic Key: ${shortAddress}`);
+      
+      // Create wallet data object
+      const walletData = {
+        id: `${walletId}_${Date.now()}`,
+        name: walletName,
+        address: address,
+        type: 'stellar',
+        connected: true,
+        network: 'TESTNET',
+        walletId: walletId, // Store the wallet ID for reconnection
+        createdAt: new Date().toISOString()
+      };
+      
+      // Update state and localStorage
+      console.log('Updating wallet state with connected wallet:', walletData);
+      
+      // First update the global context to ensure immediate UI update
+      if (window.walletContext && typeof window.walletContext.setWallet === 'function') {
+        window.walletContext.setWallet(walletData);
+      }
+      
+      // Then update the local component context if available
+      if (typeof setWallet === 'function') {
+        setWallet(walletData);
+      }
+      
+      // Force update the WalletContext state
+      if (walletContext && typeof walletContext.setWallet === 'function') {
+        walletContext.setWallet(walletData);
+      }
+      
+      // Always save to localStorage as a backup
+      localStorage.setItem('eazeWallet', JSON.stringify(walletData));
+      
+      // Force update any components that depend on the wallet state
+      if (typeof window !== 'undefined') {
+        // Dispatch a custom event that components can listen for
+        const walletConnectedEvent = new CustomEvent('walletConnected', { detail: walletData });
+        window.dispatchEvent(walletConnectedEvent);
+      }
+      
+      // Show success message
+      setSuccess(true);
+      
+      // Call the onConnect callback with the wallet data
+      if (onConnect && typeof onConnect === 'function') {
+        onConnect(walletData);
+      }
+      
+      // Set a timeout to show success message before redirecting to dashboard
+      setTimeout(() => {
+        setConnecting(false);
+        onClose();
+        // Redirect to dashboard after successful connection
+        console.log('Redirecting to dashboard...');
+        navigate('/dashboard');
+      }, 1500);
+      
     } catch (error) {
       console.error(`Error connecting to ${walletName}:`, error);
       setError(error.message || `Error connecting to ${walletName}`);

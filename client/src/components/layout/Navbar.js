@@ -47,25 +47,81 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
   
-  const disconnectWallet = () => {
-    // Clear wallet from context using the proper context method
-    if (walletContext && typeof walletContext.setWallet === 'function') {
-      walletContext.setWallet(null);
-    } else if (window.walletContext && typeof window.walletContext.setWallet === 'function') {
-      // Fallback to global context if available
-      window.walletContext.setWallet(null);
+  const disconnectWallet = async () => {
+    try {
+      console.log('Starting wallet disconnection process');
+      
+      // First, clear localStorage to ensure we don't auto-connect on refresh
+      localStorage.removeItem('eazeWallet');
+      console.log('Removed wallet from localStorage');
+      
+      // Get the wallet kit from context or window
+      let kit = null;
+      if (walletContext && walletContext.walletKit) {
+        kit = walletContext.walletKit;
+        console.log('Found wallet kit in component context');
+      } else if (window.walletContext && typeof window.walletContext.getWalletKit === 'function') {
+        kit = window.walletContext.getWalletKit();
+        console.log('Found wallet kit in window context');
+      }
+      
+      // If we have a wallet kit, properly disconnect the wallet
+      if (kit) {
+        console.log('Disconnecting wallet using Stellar Wallets Kit');
+        // Force disconnect from the wallet provider
+        try {
+          await kit.disconnect();
+          console.log('Successfully disconnected from wallet provider');
+        } catch (disconnectErr) {
+          console.warn('Error during wallet provider disconnect:', disconnectErr);
+          // Continue with local disconnection even if provider disconnect fails
+        }
+      } else {
+        console.log('No wallet kit found, proceeding with manual disconnection');
+      }
+      
+      // Update the local state first
+      if (typeof setWallet === 'function') {
+        console.log('Clearing wallet in local state');
+        setWallet(null);
+      }
+      
+      // Then update the global context
+      if (window.walletContext && typeof window.walletContext.setWallet === 'function') {
+        console.log('Clearing wallet in global context');
+        window.walletContext.setWallet(null);
+      }
+      
+      // Dispatch a custom event to notify all components
+      if (typeof window !== 'undefined') {
+        const walletDisconnectedEvent = new CustomEvent('walletDisconnected');
+        window.dispatchEvent(walletDisconnectedEvent);
+        console.log('Dispatched walletDisconnected event');
+      }
+      
+      // Close menu if open
+      setIsMenuOpen(false);
+      
+      console.log('Wallet disconnected successfully');
+      
+      // Show feedback to user
+      alert('Wallet disconnected successfully');
+      
+      // Force a page reload to ensure all components are in sync
+      // This is a fallback to ensure the UI is updated correctly
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      alert('Error disconnecting wallet: ' + (error.message || 'Unknown error'));
+      
+      // Force clear wallet data as a last resort
+      localStorage.removeItem('eazeWallet');
+      if (typeof setWallet === 'function') {
+        setWallet(null);
+      }
     }
-    
-    // Remove from localStorage
-    localStorage.removeItem('eazeWallet');
-    
-    // Close menu if open
-    setIsMenuOpen(false);
-    
-    console.log('Wallet disconnected');
-    
-    // Show feedback to user
-    alert('Wallet disconnected successfully');
   };
   
   const handleHover = (item) => {
