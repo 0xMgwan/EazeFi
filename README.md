@@ -670,20 +670,12 @@ EazeFi is currently deployed on Stellar Testnet. To interact with the deployed v
 3. Fund your testnet wallet using Stellar's Friendbot if needed
 4. Try sending a test remittance
 
-### Testing Credentials
-
-For testing the M-Pesa integration on testnet:
-
-- **Test Phone Number**: +255747630873
-- **Test M-Pesa PIN**: 1234
-- **Test Recipient Name**: Mary Mwanjelwa
-- **Test Country**: Tanzania
 
 ### Soroban Contract IDs
 
-- **Remittance Contract**: CDCYWK73YTYFJZZSJ5V7EDFNHYBG4QN3VUNG4DQHI72HPQYQTQKBVVKL
-- **Family Pool Contract**: (Contact team for current testnet deployment ID)
-- **Token Wrapper Contract**: (Contact team for current testnet deployment ID)
+- **Remittance Contract**: CDRZTAFZ5U2CJ3ICR23U2RT46I5FVPKEG3ZSA233RHISFH4QKUK2RL3A
+- **Family Pool Contract**: CAA7DKVW5IO7OSPJ6ZJLMRUJRJ3PKMVXVT7I2AVGEEXPDGOUHZSP2ADN
+- **Token Wrapper Contract**: CDXEBQDKPLAAVMEYT7KSDYARPPFG4TPE5ALPYRYH4WEK2HC5QP76BUAO
 
 ### TSHT Token Details
 
