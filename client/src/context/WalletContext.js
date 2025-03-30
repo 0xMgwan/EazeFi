@@ -225,8 +225,8 @@ export const WalletProvider = ({ children }) => {
     }
   };
 
-  // Get wallet balance
-  const getBalance = async () => {
+  // Get family pools
+  const getFamilyPools = async () => {
     try {
       setLoading(true);
       
@@ -237,32 +237,130 @@ export const WalletProvider = ({ children }) => {
         return [];
       }
       
-      // Get balance from Stellar Horizon API
-      const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
-      const account = await server.loadAccount(wallet.address);
+      // For demo purposes, return mock family pools
+      // In a real app, this would fetch from your API or smart contract
+      const mockFamilyPools = [
+        {
+          id: '1',
+          name: 'Family Support Pool',
+          description: 'Monthly remittances for family back home',
+          token: 'XLM',
+          balance: 500,
+          members: [
+            { email: 'parent@example.com', role: 'admin' },
+            { email: 'sibling1@example.com', role: 'member' },
+            { email: 'sibling2@example.com', role: 'member' }
+          ],
+          withdrawalLimit: 100,
+          withdrawalPeriod: 'monthly',
+          createdAt: new Date().toISOString(),
+          lastActivity: new Date().toISOString()
+        },
+        {
+          id: '2',
+          name: 'Education Fund',
+          description: 'College fund for younger siblings',
+          token: 'USDC',
+          balance: 1200,
+          members: [
+            { email: 'parent@example.com', role: 'admin' },
+            { email: 'uncle@example.com', role: 'member' }
+          ],
+          withdrawalLimit: 200,
+          withdrawalPeriod: 'quarterly',
+          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          lastActivity: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
       
-      // Format balances
-      const formattedBalances = account.balances.map(balance => {
-        return {
-          asset: balance.asset_type === 'native' ? 'XLM' : `${balance.asset_code}:${balance.asset_issuer}`,
-          balance: parseFloat(balance.balance),
-          limit: balance.limit ? parseFloat(balance.limit) : null,
-          buyingLiabilities: balance.buying_liabilities ? parseFloat(balance.buying_liabilities) : 0,
-          sellingLiabilities: balance.selling_liabilities ? parseFloat(balance.selling_liabilities) : 0,
-          assetType: balance.asset_type,
-          assetCode: balance.asset_code || 'XLM',
-          assetIssuer: balance.asset_issuer || 'native',
-        };
-      });
-      
-      setBalances(formattedBalances);
+      setFamilyPools(mockFamilyPools);
       setLoading(false);
-      return formattedBalances;
+      return mockFamilyPools;
     } catch (err) {
-      console.error('Error getting balance:', err);
-      setError('Error fetching balance');
+      console.error('Error getting family pools:', err);
+      setError('Error fetching family pools');
       setLoading(false);
       return [];
+    }
+  };
+
+  // Get wallet balance
+  const getBalance = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if wallet is connected
+      if (!wallet || !wallet.address) {
+        console.log('No wallet connected, cannot fetch balance');
+        setBalances([{
+          asset: 'XLM',
+          balance: 0,
+          assetType: 'native',
+          assetCode: 'XLM',
+          assetIssuer: 'native',
+        }]);
+        setLoading(false);
+        return [];
+      }
+      
+      console.log('Fetching balance for wallet:', wallet.address);
+      
+      try {
+        // Get balance from Stellar Horizon API
+        const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
+        const account = await server.loadAccount(wallet.address);
+        
+        // Format balances
+        const formattedBalances = account.balances.map(balance => {
+          return {
+            asset: balance.asset_type === 'native' ? 'XLM' : `${balance.asset_code}:${balance.asset_issuer}`,
+            balance: parseFloat(balance.balance),
+            limit: balance.limit ? parseFloat(balance.limit) : null,
+            buyingLiabilities: balance.buying_liabilities ? parseFloat(balance.buying_liabilities) : 0,
+            sellingLiabilities: balance.selling_liabilities ? parseFloat(balance.selling_liabilities) : 0,
+            assetType: balance.asset_type,
+            assetCode: balance.asset_code || 'XLM',
+            assetIssuer: balance.asset_issuer || 'native',
+          };
+        });
+        
+        console.log('Balances fetched successfully:', formattedBalances);
+        setBalances(formattedBalances);
+        setLoading(false);
+        return formattedBalances;
+      } catch (accountErr) {
+        // Handle the case where the account doesn't exist yet
+        if (accountErr.response && accountErr.response.status === 404) {
+          console.log('Account not found on network. This is normal for new wallets.');
+          // Set a default balance of 0 XLM for new accounts
+          const defaultBalance = [{
+            asset: 'XLM',
+            balance: 0,
+            assetType: 'native',
+            assetCode: 'XLM',
+            assetIssuer: 'native',
+          }];
+          setBalances(defaultBalance);
+          setLoading(false);
+          return defaultBalance;
+        } else {
+          // Re-throw for other errors
+          throw accountErr;
+        }
+      }
+    } catch (err) {
+      console.error('Error getting balance:', err);
+      // Don't set error for new accounts, just show 0 balance
+      const defaultBalance = [{
+        asset: 'XLM',
+        balance: 0,
+        assetType: 'native',
+        assetCode: 'XLM',
+        assetIssuer: 'native',
+      }];
+      setBalances(defaultBalance);
+      setLoading(false);
+      return defaultBalance;
     }
   };
 
@@ -278,6 +376,80 @@ export const WalletProvider = ({ children }) => {
     }
   }, [isAuthenticated, authLoading, wallet]);
 
+  // Add mock functions for family pool operations
+  const contributeToPool = async (poolId, amount) => {
+    try {
+      setLoading(true);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update the pool balance
+      const updatedPools = familyPools.map(pool => {
+        if (pool.id === poolId) {
+          return {
+            ...pool,
+            balance: pool.balance + parseFloat(amount),
+            lastActivity: new Date().toISOString()
+          };
+        }
+        return pool;
+      });
+      
+      setFamilyPools(updatedPools);
+      setLoading(false);
+      return { success: true, message: 'Contribution successful' };
+    } catch (err) {
+      console.error('Error contributing to pool:', err);
+      setError('Error contributing to pool');
+      setLoading(false);
+      throw err;
+    }
+  };
+  
+  const withdrawFromPool = async (poolId, amount, reason) => {
+    try {
+      setLoading(true);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Find the pool
+      const pool = familyPools.find(p => p.id === poolId);
+      
+      if (!pool) {
+        throw new Error('Pool not found');
+      }
+      
+      if (parseFloat(amount) > pool.balance) {
+        throw new Error('Insufficient funds in pool');
+      }
+      
+      if (parseFloat(amount) > pool.withdrawalLimit) {
+        throw new Error(`Withdrawal exceeds limit of ${pool.withdrawalLimit} ${pool.token}`);
+      }
+      
+      // Update the pool balance
+      const updatedPools = familyPools.map(p => {
+        if (p.id === poolId) {
+          return {
+            ...p,
+            balance: p.balance - parseFloat(amount),
+            lastActivity: new Date().toISOString()
+          };
+        }
+        return p;
+      });
+      
+      setFamilyPools(updatedPools);
+      setLoading(false);
+      return { success: true, message: 'Withdrawal successful' };
+    } catch (err) {
+      console.error('Error withdrawing from pool:', err);
+      setError(err.message || 'Error withdrawing from pool');
+      setLoading(false);
+      throw err;
+    }
+  };
+
   return (
     <WalletContext.Provider
       value={{
@@ -291,6 +463,9 @@ export const WalletProvider = ({ children }) => {
         setWallet,
         getWallet,
         getBalance,
+        getFamilyPools,
+        contributeToPool,
+        withdrawFromPool,
         walletKit
       }}
     >

@@ -64,10 +64,23 @@ const FundTestnetWallet = () => {
         message: 'Your wallet has been funded with testnet XLM!'
       });
       
-      // Refresh balance after funding
-      setTimeout(() => {
+      // Refresh balance after funding with multiple attempts
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      const refreshBalance = () => {
+        attempts++;
+        console.log(`Attempting to refresh balance (attempt ${attempts} of ${maxAttempts})`);
         getBalance();
-      }, 2000); // Give the network a moment to process
+        
+        // If we haven't reached max attempts, schedule another refresh
+        if (attempts < maxAttempts) {
+          setTimeout(refreshBalance, 3000);
+        }
+      };
+      
+      // Start the first refresh after a short delay
+      setTimeout(refreshBalance, 2000);
     } catch (error) {
       console.error('Error funding wallet:', error);
       
