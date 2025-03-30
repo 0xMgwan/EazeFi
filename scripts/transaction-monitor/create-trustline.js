@@ -12,7 +12,7 @@ const readline = require('readline');
 const config = {
   network: 'TESTNET',
   horizonUrl: 'https://horizon-testnet.stellar.org',
-  tshtIssuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+  tshtIssuer: 'GB65WQQTEV7PWOVXUNW3S23AEXHYHZ2FFOIHH2OPCCAYN3VK45WLSZ2F',
   tshtCode: 'TSHT',
   tshtLimit: '1000000' // Default limit
 };

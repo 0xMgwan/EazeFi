@@ -16,7 +16,7 @@ const config = {
   horizonUrl: 'https://horizon-testnet.stellar.org',
   
   // TSHT token configuration
-  tshtIssuer: 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5',
+  tshtIssuer: 'GB65WQQTEV7PWOVXUNW3S23AEXHYHZ2FFOIHH2OPCCAYN3VK45WLSZ2F',
   tshtCode: 'TSHT',
   
   // Exchange rate: 1 XLM = ? TSHT
