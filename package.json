@@ -10,7 +10,9 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "install-all": "npm install && npm install --prefix server && npm install --prefix client",
-    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client"
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client",
+    "build": "cd client && npm install --legacy-peer-deps && npm run build",
+    "vercel-build": "cd client && npm install --legacy-peer-deps && npx craco build"
   },
   "keywords": [
     "stellar",
@@ -23,9 +25,16 @@
   "author": "David Machuche",
   "license": "MIT",
   "dependencies": {
-    "concurrently": "^8.0.1"
+    "@creit.tech/stellar-wallets-kit": "^1.7.3",
+    "@stellar/stellar-sdk": "^13.1.0",
+    "axios": "^1.8.4",
+    "concurrently": "^8.0.1",
+    "dotenv": "^16.4.7",
+    "node-fetch": "^3.3.2",
+    "stellar-sdk": "^13.1.0"
   },
   "devDependencies": {
+    "jsonwebtoken": "^9.0.2",
     "nodemon": "^2.0.22"
   },
   "engines": {

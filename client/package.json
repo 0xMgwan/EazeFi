@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@craco/craco": "^7.1.0",
+    "@creit.tech/stellar-wallets-kit": "^1.7.3",
     "@stellar/freighter-api": "^1.5.1",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
@@ -26,6 +27,7 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^6.11.2",
     "react-scripts": "5.0.1",
+    "react-toastify": "^11.0.5",
     "stellar-sdk": "^10.4.1",
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
@@ -36,10 +38,9 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "craco build",
+    "build": "GENERATE_SOURCEMAP=false craco build",
     "test": "craco test",
-    "eject": "react-scripts eject",
-    "vercel-build": "node vercel-build.js"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
