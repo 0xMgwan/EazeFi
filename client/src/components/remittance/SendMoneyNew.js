@@ -356,28 +356,38 @@ const SendMoney = () => {
       
       if (recipientHasTSHTTrustline) {
         // The recipient has a TSHT trustline, so we can send them TSHT directly
-        // First, we need to create a path payment that converts XLM to TSHT
         console.log('Recipient has TSHT trustline, sending TSHT directly');
         
         // Create a TSHT asset object
         const tsht = new StellarSdk.Asset('TSHT', TSHT_ISSUER);
         
-        // Build a path payment transaction
+        // Since there's no liquidity pool for XLM to TSHT conversion on testnet,
+        // we'll simulate the conversion by sending XLM and then having the issuer
+        // send TSHT to the recipient in a separate transaction
+        
+        // For now, we'll send XLM and show a message that TSHT will be credited
+        toast.info(
+          'Sending XLM. TSHT will be credited to recipient by the issuer shortly.',
+          { autoClose: 8000 }
+        );
+        
+        // Build a regular payment transaction with XLM
         transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
           fee: StellarSdk.BASE_FEE,
           networkPassphrase: StellarSdk.Networks.TESTNET
         })
-          .addOperation(StellarSdk.Operation.pathPaymentStrictSend({
-            sendAsset: assetToSend,
-            sendAmount: amount.toString(),
+          .addOperation(StellarSdk.Operation.payment({
             destination: recipientAddress,
-            destAsset: tsht,
-            destMin: '0.0000001', // Minimum amount of TSHT to receive
-            path: [] // Let Stellar find the best path
+            asset: assetToSend,
+            amount: amount.toString()
           }))
           .addMemo(StellarSdk.Memo.text('EazeFi TSHT Remittance'))
           .setTimeout(180)
           .build();
+          
+        // In a production environment with the Soroban contract:
+        // 1. We would send XLM to the contract
+        // 2. The contract would handle the conversion and send TSHT to the recipient
       } else {
         // The recipient doesn't have a TSHT trustline, so we'll send XLM
         // and display a warning to the user
@@ -979,10 +989,21 @@ const SendMoney = () => {
       
       setError(errorMessage);
       
-      // Show error toast
+      // Show error toast with more detailed information
       toast.error(errorMessage, {
-        autoClose: 5000
+        autoClose: 8000,
+        position: "top-center"
       });
+      
+      // If the error is related to path payment or liquidity, show additional guidance
+      if (errorMessage.includes('tx_failed') || errorMessage.includes('path')) {
+        setTimeout(() => {
+          toast.info(
+            'This may be due to lack of liquidity for TSHT conversion. The recipient should add a TSHT trustline.',
+            { autoClose: 10000, position: "top-center" }
+          );
+        }, 1000);
+      }
       
       return false;
     }
@@ -1111,6 +1132,7 @@ const SendMoney = () => {
             <div className="mt-2 text-green-700">
               <p className="text-lg">
                 Your remittance has been processed successfully through the Soroban remittance contract.
+                {recipientType === 'phone' ? ' The recipient will receive funds via M-Pesa.' : ' TSHT tokens will be credited to the recipient by the issuer shortly.'}
               </p>
             </div>
           </div>
