@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { WalletProvider } from './context/WalletContext';
 import PrivateRoute from './components/routing/PrivateRoute';
+import ToastContainer from './components/common/ToastContainer';
 
 // Layout Components
 import Navbar from './components/layout/Navbar';
@@ -42,6 +43,7 @@ const App = () => {
           <div className="flex flex-col min-h-screen">
             <Navbar />
             <Alert />
+            <ToastContainer />
             <main className="flex-grow container mx-auto px-4 py-6 animate-fade-in">
               <Routes>
                 {/* Public Routes */}

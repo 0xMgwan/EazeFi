@@ -3,7 +3,7 @@ import axios from 'axios';
 import StellarSdk from 'stellar-sdk';
 import { FaRocket, FaCheckCircle, FaExclamationCircle, FaSync, FaSpinner } from 'react-icons/fa';
 import WalletContext from '../../context/WalletContext';
-import { showSuccess, showError, showInfo, showLoading, updateToast } from '../common/NotificationSystem';
+import { showSuccess, showError, showInfo, showLoading, updateToast } from '../../utils/notificationUtils';
 
 const FundTestnetWallet = () => {
   const { wallet, getBalance } = useContext(WalletContext);

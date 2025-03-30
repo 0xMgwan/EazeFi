@@ -9,8 +9,7 @@ import DebugBalanceChecker from './DebugBalanceChecker';
 import DirectBalanceDisplay from './DirectBalanceDisplay';
 import TopBalanceDisplay from './TopBalanceDisplay';
 import axios from 'axios';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { showSuccess, showError, showInfo, showLoading, updateToast } from '../../utils/notificationUtils';
 
 const Wallet = () => {
   const { 
@@ -393,7 +392,7 @@ const Wallet = () => {
                       
                       // Update the loading toast
                       if (fundingSuccess) {
-                        toast.update(loadingToastId, {
+                        updateToast(loadingToastId, {
                           render: 'Your wallet has been funded with testnet XLM!',
                           type: 'success',
                           isLoading: false,
@@ -413,7 +412,7 @@ const Wallet = () => {
                       }
                     } catch (error) {
                       console.error('Error funding wallet:', error);
-                      toast.update(loadingToastId, {
+                      updateToast(loadingToastId, {
                         render: 'This wallet has already been funded or there was an error with the Friendbot service.',
                         type: 'error',
                         isLoading: false,
