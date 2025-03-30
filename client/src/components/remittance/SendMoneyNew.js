@@ -373,12 +373,18 @@ const SendMoney = () => {
               // Show a toast notification that will auto-close when transaction is confirmed
               const confirmToastId = toast.info('Please confirm the transaction in your wallet extension', {
                 position: "top-center",
-                autoClose: false,
-                closeButton: false,
-                closeOnClick: false,
-                draggable: false,
+                autoClose: 8000, // Auto-close after 8 seconds even if not explicitly dismissed
+                closeButton: true,
+                closeOnClick: true,
+                draggable: true,
                 progress: undefined,
               });
+              
+              // Set up a timeout to dismiss the toast if it's still showing after 10 seconds
+              const autoCloseTimeout = setTimeout(() => {
+                toast.dismiss(confirmToastId);
+                console.log('Auto-dismissed confirmation toast after timeout');
+              }, 10000);
               
               try {
                 console.log('Requesting Albedo to sign and submit transaction...');
@@ -390,6 +396,25 @@ const SendMoney = () => {
                 
                 // Auto-close the confirmation toast when transaction is confirmed
                 toast.dismiss(confirmToastId);
+                clearTimeout(autoCloseTimeout); // Clear the auto-close timeout
+                
+                // Close any other popups that might be open
+                // This is a more aggressive approach to ensure all popups are closed
+                try {
+                  // Close any open dialogs or modals
+                  document.querySelectorAll('.ReactModalPortal, .Toastify__toast-container').forEach(el => {
+                    if (el && el.parentNode) {
+                      el.style.display = 'none';
+                      setTimeout(() => {
+                        try {
+                          el.parentNode.removeChild(el);
+                        } catch (e) {}
+                      }, 100);
+                    }
+                  });
+                } catch (cleanupError) {
+                  console.error('Error cleaning up UI elements:', cleanupError);
+                }
                 
                 console.log('Albedo transaction result:', albedoResult);
                 
@@ -422,14 +447,37 @@ const SendMoney = () => {
               } catch (albedoError) {
                 console.error('Albedo transaction error:', albedoError);
                 
-                // Check for specific Albedo error messages
+                // Make sure to dismiss the confirmation toast on error
+                toast.dismiss(confirmToastId);
+                clearTimeout(autoCloseTimeout);
+                
+                // Close any other popups that might be open
+                try {
+                  document.querySelectorAll('.ReactModalPortal, .Toastify__toast-container').forEach(el => {
+                    if (el && el.parentNode) {
+                      el.style.display = 'none';
+                      setTimeout(() => {
+                        try {
+                          el.parentNode.removeChild(el);
+                        } catch (e) {}
+                      }, 100);
+                    }
+                  });
+                } catch (cleanupError) {
+                  console.error('Error cleaning up UI elements on error:', cleanupError);
+                }
+                
+                // Show an error toast instead
                 const errorMessage = albedoError.message || '';
                 
                 if (errorMessage.includes('failed during execution')) {
+                  toast.error('Transaction failed: The destination account may not exist or you have insufficient funds.');
                   throw new Error('Transaction failed: The destination account may not exist or you have insufficient funds. Please check your balance and try again.');
                 } else if (errorMessage.includes('rejected')) {
+                  toast.warning('Transaction was rejected by user');
                   throw new Error('Transaction was rejected by user');
                 } else {
+                  toast.error('Failed to process transaction with Albedo: ' + errorMessage);
                   throw new Error('Failed to process transaction with Albedo: ' + errorMessage);
                 }
               }
