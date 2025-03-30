@@ -12,7 +12,7 @@ const Footer = () => {
           <div>
             <h3 className="text-xl font-semibold mb-4">EazeFi</h3>
             <p className="text-gray-300">
-              A Stellar-based platform that enables anyone around the world to send tokenized mobile money instantly across borders.
+              A global platform that enables anyone to send digital money instantly across borders with low fees and high security.
             </p>
           </div>
           
@@ -138,14 +138,7 @@ const Footer = () => {
         
         <div className="border-t border-gray-700 mt-8 pt-6 text-center">
           <p className="text-gray-400">
-            &copy; {year} EazeFi. All rights reserved. Built by <a 
-              href="https://github.com/0xMgwan" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-blue-400 hover:text-blue-300"
-            >
-              David Machuche
-            </a>
+            &copy; {year} EazeFi. All rights reserved.
           </p>
         </div>
       </div>
