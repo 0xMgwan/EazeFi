@@ -36,11 +36,46 @@ const SendMoney = () => {
   const [success, setSuccess] = useState(false);
   const [exchangeRate, setExchangeRate] = useState(248.73); // Mock exchange rate for XLM to TSHT
   
+  // State to track if user has TSHT trustline
+  const [hasTSHTTrustline, setHasTSHTTrustline] = useState(false);
+  const [isEstablishingTrustline, setIsEstablishingTrustline] = useState(false);
+  
   // Initialize
   useEffect(() => {
     // Get wallet balance
     getBalance();
-  }, []);
+    
+    // Check if user has TSHT trustline
+    if (wallet && wallet.address) {
+      checkTSHTTrustline(wallet.address);
+    }
+  }, [wallet]);
+  
+  // Function to check if user has TSHT trustline
+  const checkTSHTTrustline = async (address) => {
+    try {
+      const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
+      const account = await server.loadAccount(address);
+      
+      // Define TSHT asset issuer
+      const TSHT_ISSUER = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
+      
+      // Check if account has TSHT trustline
+      const hasTrustline = account.balances.some(balance => 
+        balance.asset_type !== 'native' && 
+        balance.asset_code === 'TSHT' && 
+        balance.asset_issuer === TSHT_ISSUER
+      );
+      
+      setHasTSHTTrustline(hasTrustline);
+      console.log('TSHT trustline check:', hasTrustline ? 'Found' : 'Not found');
+      return hasTrustline;
+    } catch (error) {
+      console.error('Error checking TSHT trustline:', error);
+      setHasTSHTTrustline(false);
+      return false;
+    }
+  };
   
   // Validate Stellar address
   const isValidStellarAddress = (address) => {
@@ -201,6 +236,51 @@ const SendMoney = () => {
     console.log('State updated:', { step, success, isSubmitting, transactionHash });
   }, [step, success, isSubmitting, transactionHash]);
 
+  // Helper function to establish a trustline for TSHT tokens
+  const establishTSHTTrustline = async (accountPublicKey) => {
+    try {
+      const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
+      const account = await server.loadAccount(accountPublicKey);
+      
+      // Define TSHT asset
+      const TSHT_ISSUER = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
+      const tsht = new StellarSdk.Asset('TSHT', TSHT_ISSUER);
+      
+      // Create a transaction to add the trustline
+      const transaction = new StellarSdk.TransactionBuilder(account, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase: StellarSdk.Networks.TESTNET
+      })
+        .addOperation(StellarSdk.Operation.changeTrust({
+          asset: tsht,
+          limit: '1000000' // Set a high limit
+        }))
+        .setTimeout(180)
+        .build();
+      
+      // If we have the secret key (for testing), sign directly
+      if (wallet.secret) {
+        const keypair = StellarSdk.Keypair.fromSecret(wallet.secret);
+        transaction.sign(keypair);
+        const result = await server.submitTransaction(transaction);
+        return result;
+      } else if (wallet.name === 'Albedo' || wallet.walletId?.includes('albedo')) {
+        // Use Albedo to sign and submit
+        const albedoResult = await window.albedo.tx({
+          xdr: transaction.toXDR(),
+          network: 'testnet',
+          submit: true
+        });
+        return albedoResult;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error establishing TSHT trustline:', error);
+      throw new Error('Failed to establish TSHT trustline: ' + error.message);
+    }
+  };
+  
   // Process the transaction using proper wallet signing
   const processTransaction = async () => {
     console.log('Starting transaction processing...');
@@ -237,19 +317,96 @@ const SendMoney = () => {
       console.log('Sending to:', recipientAddress);
       console.log('Amount:', amount, selectedAsset);
       
-      // Build the transaction
-      const transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
-        fee: StellarSdk.BASE_FEE,
-        networkPassphrase: StellarSdk.Networks.TESTNET
-      })
-        .addOperation(StellarSdk.Operation.payment({
-          destination: recipientAddress,
-          asset: assetToSend,
-          amount: amount.toString()
-        }))
-        .addMemo(StellarSdk.Memo.text('EazeFi Remittance'))
-        .setTimeout(180)
-        .build();
+      // Define the Soroban remittance contract ID from memory
+      const REMITTANCE_CONTRACT_ID = 'CDCYWK73YTYFJZZSJ5V7EDFNHYBG4QN3VUNG4DQHI72HPQYQTQKBVVKL';
+      const TSHT_ISSUER = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
+      
+      console.log('Using Soroban remittance contract:', REMITTANCE_CONTRACT_ID);
+      console.log('TSHT will be issued by:', TSHT_ISSUER);
+      
+      // For a complete Soroban integration, we would use the SorobanClient SDK to:
+      // 1. Create a contract instance
+      // 2. Call the contract's create_remittance function
+      // 3. The contract would handle the conversion from XLM to TSHT
+      
+      // For now, we'll use a special memo to indicate this is a remittance transaction
+      // In a production environment, this would be replaced with proper contract calls
+      
+      // Check if the recipient has a TSHT trustline
+      let recipientHasTSHTTrustline = false;
+      try {
+        const recipientAccount = await server.loadAccount(recipientAddress);
+        recipientHasTSHTTrustline = recipientAccount.balances.some(balance => 
+          balance.asset_type !== 'native' && 
+          balance.asset_code === 'TSHT' && 
+          balance.asset_issuer === TSHT_ISSUER
+        );
+        console.log('Recipient TSHT trustline check:', recipientHasTSHTTrustline ? 'Found' : 'Not found');
+      } catch (error) {
+        console.error('Error checking recipient trustline:', error);
+        // If we can't check, assume they don't have a trustline
+        recipientHasTSHTTrustline = false;
+      }
+      
+      // Create a transaction that will properly handle the conversion
+      // If the recipient has a TSHT trustline, we'll send them TSHT directly
+      // Otherwise, we'll send XLM with a memo indicating it's a remittance
+      
+      let transaction;
+      
+      if (recipientHasTSHTTrustline) {
+        // The recipient has a TSHT trustline, so we can send them TSHT directly
+        // First, we need to create a path payment that converts XLM to TSHT
+        console.log('Recipient has TSHT trustline, sending TSHT directly');
+        
+        // Create a TSHT asset object
+        const tsht = new StellarSdk.Asset('TSHT', TSHT_ISSUER);
+        
+        // Build a path payment transaction
+        transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
+          fee: StellarSdk.BASE_FEE,
+          networkPassphrase: StellarSdk.Networks.TESTNET
+        })
+          .addOperation(StellarSdk.Operation.pathPaymentStrictSend({
+            sendAsset: assetToSend,
+            sendAmount: amount.toString(),
+            destination: recipientAddress,
+            destAsset: tsht,
+            destMin: '0.0000001', // Minimum amount of TSHT to receive
+            path: [] // Let Stellar find the best path
+          }))
+          .addMemo(StellarSdk.Memo.text('EazeFi TSHT Remittance'))
+          .setTimeout(180)
+          .build();
+      } else {
+        // The recipient doesn't have a TSHT trustline, so we'll send XLM
+        // and display a warning to the user
+        console.log('Recipient does not have TSHT trustline, sending XLM');
+        
+        toast.warning(
+          'The recipient does not have a TSHT trustline established. They will receive XLM instead of TSHT.',
+          { autoClose: 8000 }
+        );
+        
+        // Build a regular payment transaction
+        transaction = new StellarSdk.TransactionBuilder(sourceAccount, {
+          fee: StellarSdk.BASE_FEE,
+          networkPassphrase: StellarSdk.Networks.TESTNET
+        })
+          .addOperation(StellarSdk.Operation.payment({
+            destination: recipientAddress,
+            asset: assetToSend,
+            amount: amount.toString()
+          }))
+          .addMemo(StellarSdk.Memo.text('EazeFi TSHT Remittance'))
+          .setTimeout(180)
+          .build();
+      }
+      
+      // Note: In a production environment, we would:
+      // 1. Use the Soroban remittance contract to handle the conversion
+      // 2. The contract would manage the exchange rate and fees
+      // 3. The contract would ensure the recipient receives the correct amount of TSHT
       
       // Show a toast notification to inform the user
       toast.info('Preparing transaction...', { autoClose: 3000 });
@@ -308,8 +465,30 @@ const SendMoney = () => {
               // First, let's check if the destination account exists
               try {
                 console.log('Checking if destination account exists:', recipientAddress);
-                await server.loadAccount(recipientAddress);
+                const destinationAccount = await server.loadAccount(recipientAddress);
                 console.log('Destination account exists');
+                
+                // Check if the destination account has a trustline for TSHT
+                const TSHT_ISSUER = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
+                const hasTSHTTrustline = destinationAccount.balances.some(balance => 
+                  balance.asset_type !== 'native' && 
+                  balance.asset_code === 'TSHT' && 
+                  balance.asset_issuer === TSHT_ISSUER
+                );
+                
+                // If the destination doesn't have a TSHT trustline, we should notify the user
+                if (!hasTSHTTrustline) {
+                  console.log('Destination account does not have a TSHT trustline');
+                  toast.warning('The recipient account does not have a trustline for TSHT tokens. They will receive XLM instead of TSHT.', {
+                    autoClose: 8000,
+                    position: "top-center"
+                  });
+                } else {
+                  console.log('Destination account has TSHT trustline');
+                  toast.info('Recipient account has TSHT trustline established. They will receive TSHT tokens.', {
+                    autoClose: 5000
+                  });
+                }
               } catch (accountError) {
                 console.error('Destination account does not exist:', accountError);
                 
@@ -1133,6 +1312,63 @@ const SendMoney = () => {
             <form onSubmit={handleSubmit}>
               {step === 1 && (
                 <div>
+                  {/* TSHT Trustline Component */}
+                  <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold mb-2">Wallet Information</h3>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-gray-600">Connected Wallet</p>
+                        <p className="font-mono text-xs truncate max-w-[200px]">{wallet?.address || 'Not connected'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Balance</p>
+                        <p className="font-medium">{balances?.xlm || '0'} XLM</p>
+                      </div>
+                    </div>
+                    
+                    {/* TSHT Trustline Status */}
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-gray-600">TSHT Trustline</p>
+                          <p className={`text-sm ${hasTSHTTrustline ? 'text-green-600' : 'text-orange-500'}`}>
+                            {hasTSHTTrustline ? 'Established' : 'Not established'}
+                          </p>
+                        </div>
+                        {!hasTSHTTrustline && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                setIsEstablishingTrustline(true);
+                                await establishTSHTTrustline(wallet.address);
+                                toast.success('TSHT trustline established successfully!');
+                                setHasTSHTTrustline(true);
+                              } catch (error) {
+                                toast.error('Failed to establish TSHT trustline: ' + error.message);
+                              } finally {
+                                setIsEstablishingTrustline(false);
+                              }
+                            }}
+                            disabled={isEstablishingTrustline}
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:bg-blue-300"
+                          >
+                            {isEstablishingTrustline ? (
+                              <span className="flex items-center">
+                                <FaSpinner className="animate-spin mr-1" /> Setting up...
+                              </span>
+                            ) : (
+                              'Establish Trustline'
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        A trustline is required to receive TSHT tokens. Recipients also need a trustline to receive TSHT.
+                      </p>
+                    </div>
+                  </div>
+                  
                   <h2 className="text-xl font-semibold mb-4">Recipient Information</h2>
                   
                   <div className="mb-4">
