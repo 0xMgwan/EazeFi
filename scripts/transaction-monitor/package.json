@@ -1,0 +1,16 @@
+{
+  "name": "eazefi-transaction-monitor",
+  "version": "1.0.0",
+  "description": "Monitors Stellar transactions and issues TSHT tokens for EazeFi remittances",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node monitor.js",
+    "dev": "nodemon monitor.js"
+  },
+  "dependencies": {
+    "stellar-sdk": "^10.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}
