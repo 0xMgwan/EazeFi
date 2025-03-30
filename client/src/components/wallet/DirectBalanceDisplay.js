@@ -13,7 +13,10 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
   
   // Function to directly fetch balance from Stellar network
   const fetchDirectBalance = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -57,7 +60,11 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
       // Handle 404 errors specifically (account not found)
       if (error.response && error.response.status === 404) {
         console.log('Account not found on Stellar network. Wallet may need funding.');
-        setError('Account not found. Try funding your wallet first.');
+        // For new accounts, show 0 balance instead of error
+        setDirectBalance('0.00');
+        setTshtBalance('0.00');
+        setHasTsht(false);
+        setError('Account not active. Fund your wallet to activate it.');
       } else {
         setError('Failed to fetch balance');
       }
@@ -70,6 +77,20 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
   useEffect(() => {
     if (walletAddress) {
       fetchDirectBalance();
+      
+      // Set up automatic refresh every 15 seconds
+      const refreshInterval = setInterval(() => {
+        fetchDirectBalance();
+      }, 15000);
+      
+      return () => clearInterval(refreshInterval);
+    } else {
+      // Reset state if wallet address is not available
+      setDirectBalance('0.00');
+      setTshtBalance('0.00');
+      setHasTsht(false);
+      setLoading(false);
+      setError(null);
     }
   }, [walletAddress]);
   
@@ -92,11 +113,12 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
         <div className="text-xl font-bold text-white">
           {loading ? (
             <span className="text-gray-400 animate-pulse">Loading...</span>
-          ) : error ? (
-            <div className="text-red-400 text-sm">{error}</div>
           ) : (
             <>
-              {directBalance} <span className="text-blue-400">XLM</span>
+              <span className="balance-display">{directBalance}</span> <span className="text-blue-400">XLM</span>
+              {error && (
+                <div className="text-amber-400 text-xs mt-1">{error}</div>
+              )}
             </>
           )}
         </div>

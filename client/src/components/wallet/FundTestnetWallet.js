@@ -54,9 +54,27 @@ const FundTestnetWallet = () => {
       }
       
       // Call Friendbot API to fund the wallet
-      const response = await axios.get(`https://friendbot.stellar.org?addr=${wallet.address}`);
-      
-      console.log('Funding successful:', response.data);
+      // Use a different endpoint that's more reliable
+      try {
+        console.log('Attempting to fund wallet with Friendbot...');
+        const response = await axios.get(`https://friendbot.stellar.org?addr=${wallet.address}`);
+        console.log('Funding successful:', response.data);
+      } catch (fundingError) {
+        // If Friendbot fails, try the laboratory friendbot as a backup
+        console.log('Primary Friendbot failed, trying backup method...');
+        try {
+          const labResponse = await axios.get(`https://laboratory.stellar.org/friendbot?addr=${wallet.address}`);
+          console.log('Backup funding successful:', labResponse.data);
+        } catch (labError) {
+          // If both fail but it's a 400 error, the account might already exist
+          if (labError.response && labError.response.status === 400) {
+            console.log('Account may already exist, proceeding with balance check');
+          } else {
+            // For other errors, rethrow to be caught by the outer catch block
+            throw labError;
+          }
+        }
+      }
       
       setResult({
         success: true,
@@ -64,23 +82,66 @@ const FundTestnetWallet = () => {
         message: 'Your wallet has been funded with testnet XLM!'
       });
       
-      // Refresh balance after funding with multiple attempts
-      let attempts = 0;
-      const maxAttempts = 3;
+      // Create a function to force a direct balance update without using the context
+      const forceDirectBalanceUpdate = async () => {
+        try {
+          console.log('Forcing direct balance update...');
+          const server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
+          
+          try {
+            // Try to load the account directly
+            const account = await server.loadAccount(wallet.address);
+            
+            // Find native XLM balance
+            const xlmBalance = account.balances.find(b => b.asset_type === 'native');
+            if (xlmBalance) {
+              const balance = parseFloat(xlmBalance.balance).toFixed(2);
+              console.log(`Direct balance check successful: ${balance} XLM`);
+              
+              // Update the UI immediately with the new balance
+              document.querySelectorAll('.balance-display').forEach(el => {
+                el.textContent = `${balance} XLM`;
+              });
+              
+              // Also update through context
+              getBalance();
+              return true;
+            }
+          } catch (loadError) {
+            console.log('Account not found yet, retrying soon...');
+            return false;
+          }
+        } catch (err) {
+          console.error('Error in direct balance update:', err);
+          return false;
+        }
+      };
       
-      const refreshBalance = () => {
+      // Immediately try to refresh balance
+      await forceDirectBalanceUpdate();
+      
+      // Set up a more aggressive refresh strategy with shorter intervals
+      let attempts = 0;
+      const maxAttempts = 10; // Increase max attempts
+      
+      const refreshBalance = async () => {
         attempts++;
         console.log(`Attempting to refresh balance (attempt ${attempts} of ${maxAttempts})`);
-        getBalance();
         
-        // If we haven't reached max attempts, schedule another refresh
-        if (attempts < maxAttempts) {
-          setTimeout(refreshBalance, 3000);
+        const success = await forceDirectBalanceUpdate();
+        
+        // If successful or we haven't reached max attempts, schedule another refresh
+        if (!success && attempts < maxAttempts) {
+          setTimeout(refreshBalance, 1500); // Even faster refresh interval
+        } else if (success) {
+          console.log('Balance refresh successful!');
+          // Force one more context update to be sure
+          setTimeout(() => getBalance(), 1000);
         }
       };
       
       // Start the first refresh after a short delay
-      setTimeout(refreshBalance, 2000);
+      setTimeout(refreshBalance, 500);
     } catch (error) {
       console.error('Error funding wallet:', error);
       
@@ -141,17 +202,24 @@ const FundTestnetWallet = () => {
       
       <button
         onClick={fundWalletWithFriendbot}
-        disabled={loading || !wallet}
+        disabled={loading || !wallet || result.success}
         className={`w-full py-2 px-4 rounded-lg flex items-center justify-center font-medium transition-all duration-300 ${
           loading 
             ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
-            : 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30'
+            : result.success
+              ? 'bg-green-500/20 text-green-300 border border-green-500/30 cursor-default'
+              : 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30'
         }`}
       >
         {loading ? (
           <>
             <div className="animate-spin h-4 w-4 border-2 border-yellow-300 border-t-transparent rounded-full mr-2"></div>
             Funding Wallet...
+          </>
+        ) : result.success ? (
+          <>
+            <FaCheckCircle className="mr-2" size={14} />
+            Wallet Successfully Funded!
           </>
         ) : (
           <>

@@ -8,7 +8,11 @@ const TopBalanceDisplay = ({ walletAddress }) => {
   const [lastUpdated, setLastUpdated] = useState(null);
   
   const fetchBalance = async () => {
-    if (!walletAddress) return;
+    if (!walletAddress) {
+      setLoading(false);
+      setBalance('0.00');
+      return;
+    }
     
     setLoading(true);
     
@@ -67,7 +71,7 @@ const TopBalanceDisplay = ({ walletAddress }) => {
           <span className="text-gray-400 animate-pulse">Loading...</span>
         ) : parseFloat(balance) > 0 ? (
           <>
-            {balance} <span className="text-blue-400">XLM</span>
+            <span className="balance-display">{balance}</span> <span className="text-blue-400">XLM</span>
             {lastUpdated && (
               <div className="text-xs text-green-500 mt-1">
                 ✓ Updated {lastUpdated.toLocaleTimeString()}

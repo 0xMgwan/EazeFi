@@ -254,7 +254,15 @@ export const WalletProvider = ({ children }) => {
           withdrawalLimit: 100,
           withdrawalPeriod: 'monthly',
           createdAt: new Date().toISOString(),
-          lastActivity: new Date().toISOString()
+          lastActivity: new Date().toISOString(),
+          contributions: [
+            { contributorId: 'parent@example.com', amount: 300, date: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
+            { contributorId: 'sibling1@example.com', amount: 150, date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
+            { contributorId: 'sibling2@example.com', amount: 50, date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() }
+          ],
+          withdrawals: [
+            { withdrawerId: 'parent@example.com', amount: 100, reason: 'Emergency medical expenses', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }
+          ]
         },
         {
           id: '2',
@@ -269,7 +277,12 @@ export const WalletProvider = ({ children }) => {
           withdrawalLimit: 200,
           withdrawalPeriod: 'quarterly',
           createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          lastActivity: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+          lastActivity: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          contributions: [
+            { contributorId: 'parent@example.com', amount: 700, date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString() },
+            { contributorId: 'uncle@example.com', amount: 500, date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString() }
+          ],
+          withdrawals: []
         }
       ];
       
