@@ -680,7 +680,7 @@ EazeFi is currently deployed on Stellar Testnet. To interact with the deployed v
 ### TSHT Token Details
 
 - **Asset Code**: TSHT (Tanzania Shilling Token)
-- **Issuer**: GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+- **Issuer**: GB65WQQTEV7PWOVXUNW3S23AEXHYHZ2FFOIHH2OPCCAYN3VK45WLSZ2F
 - **Network**: Stellar Testnet
 
 ## Contributing
