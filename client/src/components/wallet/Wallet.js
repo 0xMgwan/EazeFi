@@ -9,6 +9,8 @@ import DebugBalanceChecker from './DebugBalanceChecker';
 import DirectBalanceDisplay from './DirectBalanceDisplay';
 import TopBalanceDisplay from './TopBalanceDisplay';
 import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { showSuccess, showError, showInfo, showLoading, updateToast } from '../../utils/notificationUtils';
 
 const Wallet = () => {
