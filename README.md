@@ -49,9 +49,37 @@ EazeFi bridges the gap between traditional remittance services and modern blockc
 - **Cross-Border Transfers**: Send money globally with minimal fees and near-instant settlement
 - **Tokenized Local Currencies**: Support for multiple tokenized currencies on the Stellar blockchain
 - **Smart Contract Security**: Remittances secured by Soroban smart contracts
+- **Automatic XLM to TSHT Conversion**: Seamless conversion from XLM to local currency tokens via transaction monitoring
+- **Trustline Management**: Built-in tools for creating and authorizing trustlines for token recipients
 - **Family Pools**: Collaborative remittance pools for family members to contribute together
 - **Transaction History**: Detailed history of all remittances with status tracking
 - **SEP-31 Compliance**: Full implementation of Stellar Ecosystem Proposal 31 for standardized cross-border payments
+
+## XLM to TSHT Conversion System
+
+One of EazeFi's key innovations is our automated XLM to TSHT (Tanzania Shilling Token) conversion system:
+
+### How It Works
+
+1. **Send XLM**: Users send XLM from their wallet with a special EazeFi memo format
+2. **Transaction Monitor**: Our background service detects these transactions on the Stellar network
+3. **Trustline Verification**: The system checks if the recipient has established a TSHT trustline
+4. **Token Issuance**: TSHT tokens are automatically issued to the recipient at the current exchange rate
+5. **Transaction Record**: The conversion is recorded in the transaction history
+
+### Technical Components
+
+- **Transaction Monitor**: A Node.js service that watches the Stellar network for EazeFi transactions
+- **Trustline Creator**: A tool for recipients to establish TSHT trustlines
+- **Trustline Authorizer**: A tool for authorizing recipient trustlines
+- **Exchange Rate System**: Maintains the current XLM to TSHT exchange rate (currently 1 XLM = 248.73 TSHT)
+
+### Benefits
+
+- **Seamless Experience**: Users don't need to understand the technical details of token conversion
+- **Instant Conversion**: Tokens are issued within seconds of the XLM transaction being confirmed
+- **Low Fees**: The entire process has minimal fees compared to traditional remittance services
+- **Transparency**: All conversions are tracked and visible in the transaction history
 
 ### Financial Features
 - **Real-time Exchange Rates**: Up-to-date market rates for all supported currencies
@@ -136,13 +164,15 @@ EazeFi utilizes three primary Soroban smart contracts:
 - **Wallet Management**: Secure key storage and transaction signing
 - **Asset Handling**: Support for multiple Stellar assets and tokens
 - **DEX**: Stellar Decentralized Exchange (SDEX) for currency swaps
+- **Transaction Monitoring**: Automated system for detecting and processing XLM to TSHT conversions
 
 #### External Integrations
 - **Stellar SDK**: JavaScript Stellar SDK for blockchain interactions
 - **Soroban SDK**: For smart contract development and deployment
-- **Payment Processors**: Integration with M-Pesa API for mobile money transactionsorms
+- **Payment Processors**: Integration with M-Pesa API for mobile money transactions
 - **Banking APIs**: Connections to traditional banking systems
 - **Exchange Rate APIs**: Real-time currency conversion rates
+- **Trustline Management**: Tools for creating and authorizing token trustlines
 
 ## Development
 
@@ -622,6 +652,14 @@ As part of the Stellar community in Tanzania, we're committed to sharing our lea
    npm run dev
    ```
 
+5. Start the transaction monitor (for XLM to TSHT conversion)
+   ```bash
+   cd scripts/transaction-monitor
+   npm install
+   export ISSUER_SECRET=YOUR_TSHT_ISSUER_SECRET_KEY
+   node monitor.js
+   ```
+
 5. Open your browser and navigate to `http://localhost:3000`
 
 ### Deploying Soroban Contracts
@@ -682,6 +720,8 @@ EazeFi is currently deployed on Stellar Testnet. To interact with the deployed v
 - **Asset Code**: TSHT (Tanzania Shilling Token)
 - **Issuer**: GB65WQQTEV7PWOVXUNW3S23AEXHYHZ2FFOIHH2OPCCAYN3VK45WLSZ2F
 - **Network**: Stellar Testnet
+- **Exchange Rate**: 1 XLM = 248.73 TSHT
+- **Trustline Required**: Recipients must establish a TSHT trustline to receive tokens
 
 ## Contributing
 
