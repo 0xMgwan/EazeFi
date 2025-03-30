@@ -61,6 +61,13 @@ async function build() {
     process.exit(1);
   }
   
+  // Explicitly install the Stellar Wallets Kit package
+  console.log('Explicitly installing Stellar Wallets Kit...');
+  if (!runCommand('npm install @creit.tech/stellar-wallets-kit@1.7.3 --force')) {
+    console.warn('Warning: Failed to explicitly install Stellar Wallets Kit, but continuing build');
+    // Don't exit, try to continue the build
+  }
+  
   console.log('Building the application...');
   if (!runCommand('npm run build')) {
     console.error('Build failed');
