@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { WalletContext } from '../../context/WalletContext';
 import { FaWallet, FaExchangeAlt, FaPaperPlane, FaUsers, FaHistory, FaChartLine, FaArrowRight, FaCheckCircle, FaRegClock, FaChevronRight } from 'react-icons/fa';
+import TransactionHistory from './TransactionHistory';
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
@@ -216,6 +217,18 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Transaction History */}
+      <div className="mb-10">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Recent Remittances</h2>
+          <Link to="/wallet" className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+            View All <FaChevronRight className="ml-1" size={12} />
+          </Link>
+        </div>
+        
+        <TransactionHistory limit={5} />
+      </div>
+
       {/* Activity Overview */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-10">
         <div className="border-b border-gray-100 p-5">
@@ -326,9 +339,14 @@ const Dashboard = () => {
                   <FaPaperPlane className="text-gray-400 text-2xl" />
                 </div>
                 <p className="text-gray-500 mb-4">No remittances yet</p>
-                <Link to="/send-money" className="bg-black text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition-all duration-300 inline-flex items-center">
-                  Send your first remittance <FaArrowRight className="ml-2" size={12} />
-                </Link>
+                <div className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3 justify-center">
+                  <Link to="/send-money" className="bg-black text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition-all duration-300 inline-flex items-center">
+                    Send remittance <FaArrowRight className="ml-2" size={12} />
+                  </Link>
+                  <Link to="/send-money-new" className="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-all duration-300 inline-flex items-center">
+                    Try new remittance flow <FaArrowRight className="ml-2" size={12} />
+                  </Link>
+                </div>
               </div>
             )
           )}

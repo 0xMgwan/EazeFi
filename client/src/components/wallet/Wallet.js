@@ -8,6 +8,7 @@ import FundTestnetWallet from './FundTestnetWallet';
 import DebugBalanceChecker from './DebugBalanceChecker';
 import DirectBalanceDisplay from './DirectBalanceDisplay';
 import TopBalanceDisplay from './TopBalanceDisplay';
+import TransactionHistory from '../dashboard/TransactionHistory';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -653,6 +654,20 @@ const Wallet = () => {
                 >
                   <BiRefresh className="mr-2" size={16} /> Refresh Data
                 </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Transaction History */}
+          <div className="bg-gray-900/50 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-800 hover:border-blue-500/30 transition-all duration-500 mt-6">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium text-blue-300 flex items-center">
+                  <FaHistory className="mr-2 text-blue-400" /> Transaction History
+                </h2>
+              </div>
+              <div className="bg-gray-800/50 rounded-xl border border-gray-700 overflow-hidden">
+                <TransactionHistory limit={5} />
               </div>
             </div>
           </div>
