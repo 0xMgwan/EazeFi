@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "cd client && npm install --legacy-peer-deps && CI=false npm run build",
   "outputDirectory": "client/build",
   "framework": "create-react-app",
   "rewrites": [
@@ -10,6 +10,7 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "CI": "false"
   }
 }

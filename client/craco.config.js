@@ -9,15 +9,9 @@ module.exports = {
         "url": require.resolve("url/"),
         "https": require.resolve("https-browserify"),
         "http": require.resolve("stream-http"),
-        "util": require.resolve("util/"),
         "buffer": require.resolve("buffer/"),
         "stream": require.resolve("stream-browserify"),
-        "assert": require.resolve("assert/"),
         "crypto": require.resolve("crypto-browserify"),
-        "path": require.resolve("path-browserify"),
-        "fs": false,
-        "os": require.resolve("os-browserify/browser"),
-        "zlib": require.resolve("browserify-zlib"),
         "process": require.resolve("process/browser")
       };
 
@@ -28,17 +22,17 @@ module.exports = {
           Buffer: ['buffer', 'Buffer'],
           process: 'process/browser'
         }),
-        // Fix for process/browser in axios
         new webpack.DefinePlugin({
-          'process.browser': JSON.stringify(true)
+          'process.browser': JSON.stringify(true),
+          'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
         })
       ];
 
-      // Fix for process/browser in axios
-      webpackConfig.resolve.alias = {
-        ...webpackConfig.resolve.alias,
-        'process/browser': require.resolve('process/browser')
-      };
+      // Ignore source map warnings
+      webpackConfig.ignoreWarnings = [
+        /Failed to parse source map/,
+        /Critical dependency: the request of a dependency is an expression/
+      ];
 
       return webpackConfig;
     }
