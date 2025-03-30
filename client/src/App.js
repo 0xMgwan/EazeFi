@@ -17,7 +17,7 @@ import Login from './components/auth/Login';
 // Dashboard Pages
 import Dashboard from './components/dashboard/Dashboard';
 import Wallet from './components/wallet/Wallet';
-import SendMoney from './components/remittance/SendMoney';
+import SendMoney from './components/remittance/SendMoneyNew';
 // Remittances page removed as per user request
 import RemittanceDetails from './components/remittance/RemittanceDetails';
 import FamilyPool from './components/family/FamilyPool';
