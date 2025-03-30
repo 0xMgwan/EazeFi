@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "include": ["/*"],
+  "exclude": [
+    "/_next/*",
+    "/api/*",
+    "/_vercel/*",
+    "/_error",
+    "/favicon.ico",
+    "/static/*"
+  ]
+}
