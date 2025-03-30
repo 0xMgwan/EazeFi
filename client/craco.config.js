@@ -22,10 +22,11 @@ module.exports = {
         "zlib": require.resolve("browserify-zlib")
       };
 
-      // Explicitly add process/browser to resolve
+      // Explicitly add process/browser and https-browserify to resolve
       webpackConfig.resolve.alias = {
         ...webpackConfig.resolve.alias,
-        'process/browser': path.resolve(__dirname, 'node_modules/process/browser.js')
+        'process/browser': path.resolve(__dirname, 'node_modules/process/browser.js'),
+        'https': path.resolve(__dirname, 'node_modules/https-browserify/index.js')
       };
 
       // Provide global variables

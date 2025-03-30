@@ -6,12 +6,18 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "build",
-        "buildCommand": "npm install && npm run build"
+        "buildCommand": "npm install --legacy-peer-deps && npm run build"
       }
     }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api" },
     { "src": "/(.*)", "dest": "/client/build/$1" }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "CI": "false",
+    "GENERATE_SOURCEMAP": "false",
+    "DISABLE_ESLINT_PLUGIN": "true"
+  }
 }
