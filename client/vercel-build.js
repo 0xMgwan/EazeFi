@@ -52,13 +52,17 @@ async function build() {
   const filesExist = ensureRequiredFiles();
   
   if (!filesExist) {
-    console.error('Some required files are missing. Build may fail.');
+    console.warn('Some required files are missing, but continuing with build process.');
+    // Don't exit, try to continue the build
   }
   
   console.log('Installing dependencies...');
-  if (!runCommand('npm install')) {
-    console.error('Failed to install dependencies');
-    process.exit(1);
+  if (!runCommand('npm install --legacy-peer-deps')) {
+    console.warn('Failed to install dependencies with --legacy-peer-deps, trying without...');
+    if (!runCommand('npm install')) {
+      console.error('Failed to install dependencies');
+      process.exit(1);
+    }
   }
   
   // Explicitly install the Stellar Wallets Kit package
@@ -69,8 +73,17 @@ async function build() {
   }
   
   console.log('Building the application...');
-  if (!runCommand('npm run build')) {
-    console.error('Build failed');
+  try {
+    // Try using craco build directly
+    if (!runCommand('npx craco build')) {
+      console.warn('Failed to build with craco directly, trying npm run build...');
+      if (!runCommand('npm run build')) {
+        console.error('All build attempts failed');
+        process.exit(1);
+      }
+    }
+  } catch (error) {
+    console.error('Error during build process:', error);
     process.exit(1);
   }
   
