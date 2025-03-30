@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd client && node vercel-build.js",
+  "buildCommand": "node vercel-build.js",
   "outputDirectory": "client/build",
   "framework": "create-react-app",
   "rewrites": [
