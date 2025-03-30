@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import WalletContext from '../../context/WalletContext';
 import { FaWallet, FaExchangeAlt, FaArrowRight, FaPlus, FaArrowUp, FaArrowDown, FaCopy, FaPaperPlane, FaHistory, FaChartLine, FaQrcode, FaShieldAlt, FaEye, FaEyeSlash, FaFingerprint, FaRocket } from 'react-icons/fa';
@@ -9,6 +9,8 @@ import DebugBalanceChecker from './DebugBalanceChecker';
 import DirectBalanceDisplay from './DirectBalanceDisplay';
 import TopBalanceDisplay from './TopBalanceDisplay';
 import axios from 'axios';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Wallet = () => {
   const { 
@@ -60,16 +62,28 @@ const Wallet = () => {
   ];
 
   // Helper function to copy wallet address to clipboard
-  const copyToClipboard = (text) => {
+  const copyToClipboard = useCallback((text) => {
     navigator.clipboard.writeText(text)
       .then(() => {
         setCopySuccess(true);
         setTimeout(() => setCopySuccess(false), 2000);
+        toast.success('Address copied to clipboard!', {
+          position: "top-right",
+          autoClose: 2000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       })
       .catch(err => {
         console.error('Failed to copy: ', err);
+        toast.error('Failed to copy address', {
+          position: "top-right",
+          autoClose: 3000,
+        });
       });
-  };
+  }, []);
 
   // Helper function to format wallet address for display
   const formatWalletAddress = (address) => {
@@ -82,8 +96,74 @@ const Wallet = () => {
   const displayBalances = balances && balances.length > 0 ? balances : mockBalances;
   const displayTransactions = transactions && transactions.length > 0 ? transactions : mockTransactions;
 
-  // Render loading state
-  if (loading) {
+  // Force a direct balance update to ensure we have the latest data
+  const forceBalanceUpdate = async () => {
+    try {
+      if (!wallet || !wallet.address) return false;
+      
+      console.log('Forcing direct balance update in Wallet component...');
+      const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${wallet.address}`);
+      
+      if (!response.ok) {
+        console.log(`Account fetch failed with status: ${response.status}`);
+        return false;
+      }
+      
+      const account = await response.json();
+      
+      // Find native XLM balance
+      const xlmBalance = account.balances.find(b => b.asset_type === 'native');
+      if (xlmBalance) {
+        const balance = parseFloat(xlmBalance.balance).toFixed(2);
+        console.log(`Direct balance check successful: ${balance} XLM`);
+        
+        // Update all balance displays on the page
+        document.querySelectorAll('.balance-display').forEach(el => {
+          el.textContent = balance;
+        });
+        
+        // Also update through context
+        getBalance();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error in direct balance update:', err);
+      return false;
+    }
+  };
+  
+  // Use effect to force balance update when component mounts
+  useEffect(() => {
+    if (wallet && wallet.address) {
+      forceBalanceUpdate();
+      
+      // Set up multiple balance checks with increasing delays
+      const checkTimes = [1000, 3000, 5000];
+      
+      checkTimes.forEach(delay => {
+        setTimeout(() => {
+          forceBalanceUpdate();
+        }, delay);
+      });
+    }
+  }, [wallet]);
+  
+  // Render loading state with a timeout to prevent infinite loading
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    // Set a timeout to stop showing the loading spinner after 5 seconds
+    if (loading) {
+      const timer = setTimeout(() => {
+        setLoadingTimeout(true);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+  
+  if (loading && !loadingTimeout) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -93,6 +173,19 @@ const Wallet = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Toast Container for notifications */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       <div className="flex flex-col md:flex-row gap-6">
         <div className="w-full md:w-2/3 space-y-6">
           {/* Wallet Card */}
@@ -234,23 +327,98 @@ const Wallet = () => {
                 <button
                   onClick={async () => {
                     if (!wallet || !wallet.address) {
-                      alert('Please connect your wallet first');
+                      toast.warning('Please connect your wallet first', {
+                        position: "top-center",
+                        autoClose: 3000,
+                      });
                       setConnectWalletModal(true);
                       return;
                     }
                     
+                    // Show loading toast
+                    const loadingToastId = toast.loading('Funding your wallet with testnet XLM...', {
+                      position: "top-center",
+                    });
+                    
                     try {
-                      // Call Friendbot API directly
-                      await axios.get(`https://friendbot.stellar.org?addr=${wallet.address}`);
-                      alert('Your wallet has been funded with testnet XLM!');
+                      // Try multiple funding endpoints for better reliability
+                      let fundingSuccess = false;
                       
-                      // Refresh balance after funding
-                      setTimeout(() => {
-                        getBalance();
-                      }, 2000);
+                      // Try the primary Friendbot API
+                      try {
+                        const response = await axios.get(`https://friendbot.stellar.org?addr=${wallet.address}`, {
+                          timeout: 10000 // 10 second timeout
+                        });
+                        if (response.status === 200) {
+                          fundingSuccess = true;
+                        }
+                      } catch (primaryError) {
+                        console.log('Primary funding method failed, trying alternative...', primaryError);
+                        // Try an alternative funding method
+                        try {
+                          console.log('Attempting alternative funding method with axios POST...');
+                          console.log('Wallet address:', wallet.address);
+                          
+                          const response = await axios.post('https://friendbot.stellar.org', {
+                            addr: wallet.address
+                          }, {
+                            timeout: 10000,
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Accept': 'application/json'
+                            }
+                          });
+                          
+                          console.log('Alternative funding response:', response.data);
+                          
+                          if (response.status === 200) {
+                            fundingSuccess = true;
+                          }
+                        } catch (alternativeError) {
+                          // Log detailed error information
+                          console.error('Alternative funding method also failed:', alternativeError);
+                          
+                          if (alternativeError.response) {
+                            console.error('Error response status:', alternativeError.response.status);
+                            console.error('Error response data:', alternativeError.response.data);
+                          } else if (alternativeError.request) {
+                            console.error('Error request:', alternativeError.request);
+                          }
+                          
+                          console.error('Error message:', alternativeError.message);
+                          console.error('Error name:', alternativeError.name);
+                          console.error('Error stack:', alternativeError.stack);
+                        }
+                      }
+                      
+                      // Update the loading toast
+                      if (fundingSuccess) {
+                        toast.update(loadingToastId, {
+                          render: 'Your wallet has been funded with testnet XLM!',
+                          type: 'success',
+                          isLoading: false,
+                          autoClose: 5000,
+                        });
+                        
+                        // Refresh balance multiple times after funding
+                        const refreshTimes = [1000, 3000, 5000];
+                        refreshTimes.forEach(delay => {
+                          setTimeout(() => {
+                            getBalance();
+                            forceBalanceUpdate();
+                          }, delay);
+                        });
+                      } else {
+                        throw new Error('Funding failed with both methods');
+                      }
                     } catch (error) {
                       console.error('Error funding wallet:', error);
-                      alert('This wallet has already been funded or there was an error with the Friendbot service.');
+                      toast.update(loadingToastId, {
+                        render: 'This wallet has already been funded or there was an error with the Friendbot service.',
+                        type: 'error',
+                        isLoading: false,
+                        autoClose: 5000,
+                      });
                     }
                   }}
                   className="w-full py-2 px-4 rounded-lg flex items-center justify-center font-medium transition-all duration-300 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30"
@@ -267,8 +435,15 @@ const Wallet = () => {
                     if (wallet && wallet.address) {
                       // Direct fund action
                       window.open('https://laboratory.stellar.org/#account-creator?network=test', '_blank');
+                      toast.info('Opening Stellar Laboratory in a new tab', {
+                        position: "top-right",
+                        autoClose: 3000,
+                      });
                     } else {
-                      alert('Please connect your wallet first');
+                      toast.warning('Please connect your wallet first', {
+                        position: "top-center",
+                        autoClose: 3000,
+                      });
                       setConnectWalletModal(true);
                     }
                   }}
@@ -281,8 +456,15 @@ const Wallet = () => {
                     if (wallet && wallet.address) {
                       // Direct withdraw action
                       window.open(`https://laboratory.stellar.org/#txbuilder?network=test&source=${wallet.address}`, '_blank');
+                      toast.info('Opening Stellar Laboratory for transaction building', {
+                        position: "top-right",
+                        autoClose: 3000,
+                      });
                     } else {
-                      alert('Please connect your wallet first');
+                      toast.warning('Please connect your wallet first', {
+                        position: "top-center",
+                        autoClose: 3000,
+                      });
                       setConnectWalletModal(true);
                     }
                   }}
@@ -319,9 +501,13 @@ const Wallet = () => {
                         .then(balances => {
                           console.log('Balances refreshed:', balances);
                           setTimeout(() => {
-                            getTransactions()
-                              .then(txs => console.log('Transactions refreshed:', txs))
-                              .catch(err => console.error('Error refreshing transactions:', err));
+                            if (typeof getTransactions === 'function') {
+                              getTransactions()
+                                .then(txs => console.log('Transactions refreshed:', txs))
+                                .catch(err => console.error('Error refreshing transactions:', err));
+                            } else {
+                              console.log('getTransactions function not available yet');
+                            }
                           }, 500);
                         })
                         .catch(err => console.error('Error refreshing balances:', err));

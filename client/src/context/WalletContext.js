@@ -341,7 +341,25 @@ export const WalletProvider = ({ children }) => {
           // If account doesn't exist (404) or other error, handle gracefully
           console.log(`Account fetch failed with status: ${response.status} ${response.statusText}`);
           
-          // Set a default balance of 0 XLM for new accounts
+          // For 400 Bad Request, this typically means the account doesn't exist yet
+          if (response.status === 400) {
+            console.log('Account does not exist yet. This is normal for new wallets that need funding.');
+            // Show a more informative message in the UI
+            const defaultBalance = [{
+              asset: 'XLM',
+              balance: 0,
+              assetType: 'native',
+              assetCode: 'XLM',
+              assetIssuer: 'native',
+              needsFunding: true // Flag to indicate this account needs funding
+            }];
+            
+            setBalances(defaultBalance);
+            setLoading(false);
+            return defaultBalance;
+          }
+          
+          // For other errors, set a default balance of 0 XLM
           const defaultBalance = [{
             asset: 'XLM',
             balance: 0,
@@ -546,6 +564,106 @@ export const WalletProvider = ({ children }) => {
       throw err;
     }
   };
+  
+  // Get transaction history for the connected wallet
+  const getTransactions = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if wallet is connected
+      if (!wallet || !wallet.address) {
+        console.log('No wallet connected, cannot fetch transactions');
+        setTransactions([]);
+        setLoading(false);
+        return [];
+      }
+      
+      console.log('Fetching transactions for wallet:', wallet.address);
+      
+      try {
+        // Use fetch API directly instead of the Stellar SDK for more control
+        console.log('Fetching transactions using fetch API...');
+        console.log(`Requesting from: https://horizon-testnet.stellar.org/accounts/${wallet.address}/transactions?limit=10&order=desc`);
+        
+        // Create a timeout promise to abort the request if it takes too long
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${wallet.address}/transactions?limit=10&order=desc`, {
+          signal: controller.signal,
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          // If account doesn't exist (404) or other error, handle gracefully
+          console.log(`Transactions fetch failed with status: ${response.status} ${response.statusText}`);
+          
+          // For 400 Bad Request, this typically means the account doesn't exist yet
+          if (response.status === 400) {
+            console.log('Account does not exist yet. This is normal for new wallets that need funding.');
+            // No need to show an error message for this case
+            setError(null);
+          } else {
+            // For other errors, set an appropriate error message
+            setError(`Error fetching transactions: ${response.statusText}`);
+          }
+          
+          setTransactions([]);
+          setLoading(false);
+          return [];
+        }
+        
+        // Parse the transactions data
+        const data = await response.json();
+        
+        // Format transactions
+        const formattedTransactions = data._embedded?.records?.map(tx => {
+          return {
+            id: tx.id,
+            hash: tx.hash,
+            ledger: tx.ledger,
+            createdAt: tx.created_at,
+            sourceAccount: tx.source_account,
+            fee: tx.fee_charged,
+            memo: tx.memo,
+            memoType: tx.memo_type,
+            operationCount: tx.operation_count,
+            type: 'transaction'
+          };
+        }) || [];
+        
+        console.log('Transactions fetched successfully:', formattedTransactions);
+        
+        setTransactions(formattedTransactions);
+        setLoading(false);
+        return formattedTransactions;
+      } catch (error) {
+        // Check if it's an AbortError (timeout)
+        if (error.name === 'AbortError') {
+          console.error('Fetch request for transactions timed out. Network may be slow.');
+          setError('Network timeout while fetching transactions. Please try again.');
+        } else {
+          console.error('Error fetching transactions:', error);
+          setError(error.message || 'Error fetching transactions');
+        }
+        
+        setTransactions([]);
+        setLoading(false);
+        return [];
+      }
+    } catch (err) {
+      console.error('Error in getTransactions:', err);
+      setError(err.message || 'Error fetching transactions');
+      setTransactions([]);
+      setLoading(false);
+      return [];
+    }
+  };
 
   return (
     <WalletContext.Provider
@@ -560,6 +678,7 @@ export const WalletProvider = ({ children }) => {
         setWallet,
         getWallet,
         getBalance,
+        getTransactions,
         getFamilyPools,
         contributeToPool,
         withdrawFromPool,

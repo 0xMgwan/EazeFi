@@ -63,15 +63,19 @@ const DebugBalanceChecker = ({ walletAddress, onBalanceFound }) => {
       console.error('Error checking balance directly:', error);
       
       let errorMessage = 'Failed to check balance';
-      if (error.response) {
-        if (error.response.status === 404) {
-          errorMessage = 'Account not found on Stellar network. It may not be funded yet.';
-        } else {
+      
+      // Safely handle error.response which might be undefined
+      if (error && error.response) {
+        if (error.response.status === 404 || error.response.status === 400) {
+          errorMessage = 'Account not found or not active on Stellar network. It needs to be funded first.';
+        } else if (error.response.status && error.response.statusText) {
           errorMessage = `API Error: ${error.response.status} - ${error.response.statusText}`;
+        } else {
+          errorMessage = `API Error: ${error.response.status || 'Unknown'}`;
         }
-      } else if (error.request) {
+      } else if (error && error.request) {
         errorMessage = 'Network error. Please check your internet connection.';
-      } else {
+      } else if (error && error.message) {
         errorMessage = error.message;
       }
       

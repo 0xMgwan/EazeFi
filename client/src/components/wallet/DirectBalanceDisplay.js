@@ -52,8 +52,8 @@ const DirectBalanceDisplay = ({ walletAddress }) => {
         ]);
         
         if (!response.ok) {
-          if (response.status === 404) {
-            console.log('Account not found on network. This is normal for new wallets.');
+          if (response.status === 404 || response.status === 400) {
+            console.log(`Account not found or not created yet (status: ${response.status}). This is normal for new wallets.`);
             setDirectBalance('0.00');
             setTshtBalance('0.00');
             setHasTsht(false);
