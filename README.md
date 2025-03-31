@@ -469,7 +469,7 @@ The EazeFi platform leverages Soroban smart contracts and the Stellar Decentrali
   - Provides status tracking (Pending, Completed, Cancelled)
   - Handles secure transaction processing
   - Deployed on Stellar Testnet: [CDRZTAFZ5U2CJ3ICR23U2RT46I5FVPKEG3ZSA233RHISFH4QKUK2RL3A](https://stellar.expert/explorer/testnet/contract/CDRZTAFZ5U2CJ3ICR23U2RT46I5FVPKEG3ZSA233RHISFH4QKUK2RL3A)
-  - Fully integrated with M-Pesa for mobile money transfers in Tanzania
+  - Integrated with mobile money such as M-Pesa for mobile money transfers in Tanzania, pending API
 
 - **Family Pool Contract**: 
   - Enables collaborative remittances through shared pools
