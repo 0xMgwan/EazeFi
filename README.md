@@ -264,7 +264,7 @@ EazeFi utilizes three primary Soroban smart contracts:
    - [Albedo](https://albedo.link/) - A web-based Stellar wallet
 
 2. **Create testnet accounts**:
-   - Use [Stellar Laboratory](https://laboratory.stellar.org/) to create testnet accounts
+   - Once registered you should have a testwallet in the backend. Navigate to wallet section and simply fund with Friendbot.
    - Fund your testnet account using [Stellar Friendbot](https://friendbot.stellar.org/)
 
 3. **Connect wallet in the app**:
