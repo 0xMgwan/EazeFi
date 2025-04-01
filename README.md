@@ -619,7 +619,7 @@ Our learning process involved:
 
 As part of the Stellar community in Tanzania, we're committed to sharing our learnings and contributing to the ecosystem's growth in East Africa.
 
-## Development Setup
+## Development Setup (with XLM to TSHT)
 
 ### Prerequisites
 
