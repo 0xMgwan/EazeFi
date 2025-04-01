@@ -497,12 +497,13 @@ For more details on the smart contracts, see the [contracts README](/contracts/R
 
 EazeFi implements several Stellar Ecosystem Proposals (SEPs) to ensure interoperability with the broader Stellar ecosystem. SEPs are standardized protocols that enable different applications and services to work together seamlessly.
 
-### SEP-24: Interactive Deposit and Withdrawal
+### SEP-24 & SEP-31: Interactive Deposit and Withdrawal & Cross-Border transactions
 
 Our primary implementation is SEP-24, which provides a standard API for deposit and withdrawal operations with interactive user flows. This enables:
 
 - **Seamless Deposits**: Users can deposit funds from external sources (like mobile money or bank accounts) into their Stellar wallets
 - **Easy Withdrawals**: Users can withdraw funds from their Stellar wallets to external destinations
+- **Cross-border transactions**: Users can send cross-border remmitances and transactions across countries
 - **Interactive Flows**: When additional information is needed, users are guided through an interactive process
 - **Status Tracking**: Users can track the status of their deposit or withdrawal operations
 
@@ -522,7 +523,7 @@ We plan to implement additional SEPs in the future:
 - **SEP-6**: Non-interactive deposit and withdrawal API
 - **SEP-10**: Stellar Web Authentication for secure authentication
 - **SEP-12**: KYC API for standardized KYC information exchange
-- **SEP-31**: Cross-Border Payments API for financial institution transfers
+
 
 ### Integration with Smart Contracts
 
