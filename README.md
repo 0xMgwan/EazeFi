@@ -225,7 +225,15 @@ EazeFi utilizes three primary Soroban smart contracts:
    # For server
    cp server/.env.example server/.env
    ```
-   
+
+4.  Start the transaction monitor (for XLM to TSHT conversion)
+   ```bash
+   cd scripts/transaction-monitor
+   npm install
+   export ISSUER_SECRET=YOUR_TSHT_ISSUER_SECRET_KEY
+   node monitor.js
+   ```
+
    Update the variables with your own values:
    - `REACT_APP_API_URL`: URL of your backend API (default: http://localhost:5000)
    - `REACT_APP_STELLAR_NETWORK`: Stellar network to use (default: TESTNET)
@@ -234,8 +242,15 @@ EazeFi utilizes three primary Soroban smart contracts:
    - `STELLAR_PUBLIC_KEY`: Your Stellar account public key
    
    For Stellar testnet accounts, you can generate keys using [Stellar Laboratory](https://laboratory.stellar.org/)
+   ## TSHT Token Details
 
-4. **Start development servers**
+- **Asset Code**: TSHT (Tanzania Shilling Token)
+- **Issuer**: GB65WQQTEV7PWOVXUNW3S23AEXHYHZ2FFOIHH2OPCCAYN3VK45WLSZ2F
+- **Network**: Stellar Testnet
+- **Exchange Rate**: 1 XLM = 248.73 TSHT
+- **Trustline Required**: Recipients must establish a TSHT trustline to receive tokens
+
+5. **Start development servers**
    
    Start both client and server concurrently:
    ```bash
@@ -251,7 +266,7 @@ EazeFi utilizes three primary Soroban smart contracts:
    npm run server
    ```
 
-5. **Access the application**
+6. **Access the application**
    
    Open your browser and navigate to:
    - Frontend: http://localhost:3000
